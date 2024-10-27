@@ -1,6 +1,5 @@
 ## Paths to Victory
 
-
 1. Unusual nmap ftp output
 2. Retrieve file with hash
 3. Use credentials to connect to admin interface on website

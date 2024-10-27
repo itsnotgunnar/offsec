@@ -1,6 +1,5 @@
 import requests
 
-
 chars = "abcdefghijklmnopqrstuvwxyz123456789*!$#/|&"
 
 for n in range(10):

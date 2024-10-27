@@ -14,6 +14,12 @@ cat file.txt | awk '{print $2}'
 enum4linux | tee file.txt
 ```
 
+#### Iteratitively Create Files with Dates of the Past Year
+
+```bash
+for i in $(seq 330 695); do date --date="$i day ago" +%Y-%m-%d-upload.pdf; done > datefile
+```
+
 #### Decrypt VNC Password
 
 ```bash
@@ -38,7 +44,13 @@ sudo du -ah / | grep -vE '^(/[^/]+/[^/]+)$' | sort -rh | head -n 20
 comm -3 recently_modified_files.txt non_root_owned_directories.txt
 ```
 
-#### Grep
+#### Password to NTLM
+
+```bash
+import hashlib; print(hashlib.new('md4', 'ENTER_PASSWORD'.encode('utf-16le')).digest().hex())
+```
+
+#### Grep Commands
 
 Recursively Grep for word, case insensitive, show 3 lines before and after match
 
@@ -82,7 +94,7 @@ Look at all of the directories:
 ls -alR | grep ^d
 ```
 
-#### Manipulating Txt Files
+#### Slicing and Dicing Text Files & Output
 
 Remove duplicate lines.
 
@@ -97,16 +109,16 @@ Print without newline, replace with comma.
 cat us.txt|awk -F'\n' '{printf "%s,",$1}'
 ```
 
-Trim leading and trailing whitespace, squeeze tabs and bunch of spaces into single space.
-
-```bash
-awk '{$1=$1};1' users.txt   
-```
-
 Trim leading and trailing whitespace, delete blank lines, squeeze tabs and bunch of spaces into single space.
 
 ```bash
 awk 'NF{$1=$1};1' users.txt   
+```
+
+Trim leading and trailing whitespace, squeeze tabs and bunch of spaces into single space.
+
+```bash
+awk '{$1=$1};1' users.txt   
 ```
 
 Delete blank lines.
@@ -127,6 +139,12 @@ Make txt file of words lowercase and remove duplicates without ordering the word
 ```bash
 awk '!a[tolower($0)]++ {print tolower($0)}' input.txt > output.txt
 awk '!a[toupper($0)]++ {print toupper($0)}' users.txt
+```
+
+Cat the 1st and 3rd field separated by ':':
+
+```bash
+cat creds.txt| cut -d ":" -f 1,3
 ```
 
 Remove any words from txt file that are less than 6 chars.
@@ -210,6 +228,18 @@ sed -n '2,15 p' log.txt
 ```
 
 #### Vi Magic
+
+Get rid of spaces.
+
+```bash
+:%s/ //g
+```
+
+Substitute "|" with newline.
+
+```bash
+:%s/|/\r/g
+```
 
 Replace strings.
 

@@ -150,6 +150,7 @@ Automated tools.
 . .\Invoke-SessionGopher.ps1
 .\amorous.ps1
 .\Seatbelt.exe -group=all -full
+.\Snaffler.exe -o snaffled.txt -s -m c:\Users -d oscp.exam -u -c $dcip -r 10000000 -l 100000000
 .\winpspy.exe
 Invoke-AllChecks
 Invoke-SessionGopher -Thorough
