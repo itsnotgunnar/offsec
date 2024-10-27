@@ -13,6 +13,3 @@ function LDAPSearch {
     return $DirectorySearcher.FindAll()
 
 }
-
-// Import-Module .\ldapenum.ps1
-// 

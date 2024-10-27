@@ -11,50 +11,33 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 '''
 TODO:
-- for the service mssql, there needs to be an additional authentication command with "--local-auth" appended (same command otherwise). Any command mssql runs (to authenticate) should have an alternative command run with --local-auth appended. Once we see which one works (the one with or without --local-auth), that will be the default if additional commands are warranted by --wicked.
-- note that ccache will only work for one user, but our program will check it for every user. i dont know whether its with it to account for this edge case in the code. one way to do this may be to remove the use_kcache auth_method if the -u argument is a file (various users)
-- instead of outputting a ton of text to stdout with all the print statements "Processing .. for user .. using auth ..", make an elegant visual, Processing services for {num_users} users using auth methods: method1,method2
-- use threads because it is really slow
-- create a summary for valid authentication at the end. user -> service1 -> user_pass (PWN3D)
-                                                             -> service2 -> user_pass,user_pass_kerberos 
+- have 3 tiers of this commands -> default/cred-check|initial enum|aggressive
+    - default -> run through all of the different variations of authentication given the args (for each service)
+    - initial enum -> enumeration whereas you wouldn't gain additional information from doing it again
+    - aggressive -> actually doing stuff like reading dacl, kerberoasting, ...  (scared of auto-exploit)
+- if pwn3d, provide commands to get a shell or dump creds (not important)
 
-- commands of 3 flavors -> default|custom|extensive
-- have 3 tiers of this command -> default/cred check|initial enum|aggressive
-- default -> run through all of the different variations of authentication given the args (for each service)
-- initial enum -> enumeration whereas you wouldn't gain additional information from doing it again
-- actually doing stuff like kerberoasting, asrep.., 
-- if pwn3d, provide commands to get a shell or dump creds
-
-construct all of the possible authentication commands
-run each and see which contain '[+]' or 'PWN3D' in output, insert results["user"]["service"]+= (auth_method,PWN3D_BOOLEAN or 1/0)
-if results["user"]["service"].lengthfor each user,service
-contain dictionary of results =
-							{"user" : 
-							  {"service": ["auth_method (successful)", "PWN3D boolean"] } }
-if user["service"].length(of list) >  '[+]'
-- create simple hydra os commands (different program)
-'''
-
-'''
-results = {
-    'target1': {
-        'user1': {
-            'service1': {
-                'auth_method1': {
-                    'success': True,
-                    'pwned': False,
-                    'output': '...'
+data structure:
+    results = {
+        'target1': {
+            'user1': {
+                'service1': {
+                    'auth_method1': {
+                        'success': True,
+                        'pwned': False,
+                        'output': '...'
+                    },
                 },
             },
         },
-    },
-}
+    }
 '''
 
 # Define protocols and services to test
 SERVICES = ["smb", "winrm", "ssh", "ftp", "rdp", "wmi", "ldap", "mssql", "vnc"]
 stop_threads = False
 lock = threading.Lock()
+command_lock = threading.Lock()  # Lock for writing commands to file
 
 def signal_handler(sig, frame):
     global stop_threads
@@ -183,7 +166,7 @@ def process_services(ip, services, auth_methods, args):
     results[username] = {}
 
     for service in services:
-        print(f"Processing {service} on {ip} using auth methods: {', '.join(auth_methods)}")
+        print(f"Processing {service} on {ip} using auth methods: {', '.join(auth_methods)}\n")
         results[username][service] = {}
         commands = construct_commands(ip, service, auth_methods, args)
         for cmd_info in commands:
@@ -206,7 +189,8 @@ def choose_best_auth_method(auth_methods):
         return auth_priority.get(base_auth, 100)
     return min(auth_methods, key=auth_key)
 
-def run_additional_commands(ip, service, auth_method, args, env, user=None, password=None, local_auth=False):
+
+def run_additional_commands(ip, service, auth_method, args, env, nxc_commands_file, user=None, password=None, local_auth=False):
     base_cmd = ["nxc", service, ip]
     # Build base command with auth options
     if auth_method == "use_kcache":
@@ -263,24 +247,33 @@ def run_additional_commands(ip, service, auth_method, args, env, user=None, pass
     # Execute additional commands
     for option in additional_commands:
         cmd = base_cmd + option.split()
+        with command_lock:
+            with open("nxc_commands.txt", "a") as cmd_file:
+                cmd_file.write(' '.join(cmd) + '\n')
         result = execute_command(cmd, env)
         # Handle or log the result as needed
         if result['output']:
             print(f"Executing nxc {service} {ip} {' '.join(option.split())}")
             print(result['output'])
 
-def execute_and_record(cmd, env, ip, user, service, auth_method_label, results):
+def execute_and_record(cmd, env, ip, user, password, service, auth_method_label, results, nxc_commands_file):
+    with command_lock:
+        with open(nxc_commands_file, "a") as cmd_file:
+            cmd_file.write(' '.join(cmd) + '\n')
     exec_result = execute_command(cmd, env)
     # Store result in results
     with lock:
         if user not in results[ip]:
             results[ip][user] = {}
-        if service not in results[ip][user]:
-            results[ip][user][service] = {}
-        results[ip][user][service][auth_method_label] = exec_result
+        if password not in results[ip][user]:
+            results[ip][user][password] = {}
+        if service not in results[ip][user][password]:
+            results[ip][user][password][service] = {}
+        results[ip][user][password][service][auth_method_label] = exec_result
     # If successful, print output
     if exec_result['success']:
         print(f"Success: {user}@{ip} via {service} using {auth_method_label}")
+        # Optionally print the output
         # print(exec_result['output'])
 
 def get_all_auth_methods(args, usernames_from_file):
@@ -296,7 +289,7 @@ def get_all_auth_methods(args, usernames_from_file):
     return auth_methods
 
 
-def process_targets(args):
+def process_targets(args, nxc_commands_file):
     targets = read_targets(args)
     users, usernames_from_file = read_users(args)
     passwords = read_passwords(args)
@@ -309,7 +302,7 @@ def process_targets(args):
 
     all_auth_methods = get_all_auth_methods(args, usernames_from_file)
     user_list = ', '.join(users)
-    print(f"Processing services for users: {user_list} using auth methods: {', '.join(all_auth_methods)}")
+    print(f"Processing services for users: {user_list} using auth methods: {', '.join(all_auth_methods)}\n")
 
     with ThreadPoolExecutor(max_workers=cpu_count()) as executor:
         futures = []
@@ -324,11 +317,11 @@ def process_targets(args):
                                 for local_auth in [False, True]:
                                     cmd = construct_command(ip, service, auth_method, args, user, password, local_auth)
                                     auth_method_label = auth_method + ("_local" if local_auth else "_windows")
-                                    future = executor.submit(execute_and_record, cmd, env, ip, user, service, auth_method_label, results)
+                                    future = executor.submit(execute_and_record, cmd, env, ip, user, password, service, auth_method_label, results, nxc_commands_file)
                                     futures.append(future)
                             else:
                                 cmd = construct_command(ip, service, auth_method, args, user, password)
-                                future = executor.submit(execute_and_record, cmd, env, ip, user, service, auth_method, results)
+                                future = executor.submit(execute_and_record, cmd, env, ip, user, password, service, auth_method, results, nxc_commands_file)
                                 futures.append(future)
         # Wait for all tasks to complete
         for future in as_completed(futures):
@@ -338,43 +331,61 @@ def process_targets(args):
         if args.wicked:
             for ip in results:
                 for user in results[ip]:
-                    for service in results[ip][user]:
-                        successful_auths = [auth for auth, res in results[ip][user][service].items() if res['success']]
-                        if successful_auths:
-                            best_auth = choose_best_auth_method(successful_auths)
-                            if service == "mssql":
-                                local_auth_best = '_local' in best_auth
-                                base_auth_method = best_auth.replace('_local', '').replace('_windows', '')
-                                run_additional_commands(ip, service, base_auth_method, args, env, user, password, local_auth_best)
-                            else:
-                                run_additional_commands(ip, service, best_auth, args, env, user, password)
+                    for password in results[ip][user]:
+                        for service in results[ip][user][password]:
+                            successful_auths = [auth for auth, res in results[ip][user][password][service].items() if res['success']]
+                            if successful_auths:
+                                best_auth = choose_best_auth_method(successful_auths)
+                                if service == "mssql":
+                                    local_auth_best = '_local' in best_auth
+                                    base_auth_method = best_auth.replace('_local', '').replace('_windows', '')
+                                    run_additional_commands(ip, service, base_auth_method, args, env, nxc_commands_file, user, password, local_auth_best)
+                                else:
+                                    run_additional_commands(ip, service, best_auth, args, env, nxc_commands_file, user, password)
 
     # Generate and print authentication summary
-    print("\nAuthentication Summary:")
+    print("\nAuthentication Summary:\n")
     for ip in results:
         for user in results[ip]:
-            print(f"User: {user}")
-            for service in results[ip][user]:
-                successful_auths = []
-                pwned = False
-                for auth_method, res in results[ip][user][service].items():
-                    if res['success']:
-                        successful_auths.append(auth_method)
-                        if res['pwned']:
-                            pwned = True
-                if successful_auths:
-                    pwned_text = " (PWN3D)" if pwned else ""
-                    auth_methods_str = ', '.join(successful_auths)
-                    print(f"  Service: {service} -> {auth_methods_str}{pwned_text}")
-            print()  # Add an empty line between users
-            
+            user_has_success = False
+            service_lines = {}
+            for password in results[ip][user]:
+                for service in results[ip][user][password]:
+                    successful_auths = []
+                    pwned = False
+                    for auth_method, res in results[ip][user][password][service].items():
+                        if res['success']:
+                            successful_auths.append(auth_method)
+                            if res['pwned']:
+                                pwned = True
+                    if successful_auths:
+                        user_has_success = True
+                        pwned_text = " (PWN3D)" if pwned else ""
+                        auth_methods_str = ', '.join(successful_auths)
+                        if service not in service_lines:
+                            service_lines[service] = []
+                        service_lines[service].append((password, auth_methods_str, pwned_text))
+            if user_has_success:
+                print(f"User: {user}")
+                for service, entries in service_lines.items():
+                    for entry in entries:
+                        password, auth_methods_str, pwned_text = entry
+                        print(f"  Service: {service} with password '{password}' -> {auth_methods_str}{pwned_text}")
+                print()  # Add an empty line between users
+    print("Note: Only users with successful authentications are shown.\n")
+
 def main():
     args = parse_arguments()
 
     # Create output directory if it doesn't exist
     os.makedirs(args.output_dir, exist_ok=True)
 
-    process_targets(args)
+    # Initialize nxc_commands.txt
+    nxc_commands_file = os.path.join(args.output_dir, "nxc_commands.txt")
+    with open(nxc_commands_file, "w") as cmd_file:
+        cmd_file.write("Commands executed:\n")
+
+    process_targets(args, nxc_commands_file)
 
     # Optionally, write results to files or process them further
     print(f"All tasks completed. Results are stored in the '{args.output_dir}' directory.")

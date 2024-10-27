@@ -1,7 +1,6 @@
 ### Redis
 
 ```bash
-
 cd RedisModules-ExecuteCommand
 make
 

