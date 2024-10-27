@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
     Searches for sensitive information in specified files across the system.
+    TAKES A LOT OF TIME BUT IS GOLD.
 
 .DESCRIPTION
     This script scans through various file types to identify potential sensitive information such as usernames, passwords, and other credentials. It logs the findings for further analysis.

