@@ -1,6 +1,10 @@
 ### Linux Privilege Escalation (Condensed version of notes/linux_privesc.md)
 
 ```bash
+hostname && whoami && /usr/bin/cat proof.txt && ip a
+```
+
+```bash
 # Proper shell
 python -c 'import pty; pty.spawn("/bin/bash")'
 python3 -c 'import pty; pty.spawn("/bin/bash")'

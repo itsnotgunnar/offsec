@@ -14,8 +14,9 @@ There are several key pieces of information we should always obtain:
 - Installed applications
 - Running processes
 
-https://github.com/lkarlslund/Adalanche/releases
-
+```bash
+hostname && whoami.exe && type proof.txt && ipconfig /all
+```
 
 ```bash
 > powershell -ep bypass
@@ -221,24 +222,18 @@ accesschk.exe -wuvc daclsvc /accepteula
 accesschk.exe /accepteula "harey" -kvuqsw hklm\System\CurrentControlSet\services # Checking for weak service ACLs in the Registry
 ```
 
-### PowerShell Scripts
+### Time-Based File SearchPowerShell Scripts -> RUN Amorous.ps1 INSTEAD, MUCH BETTER (but time consuming)
 
 Last 1,000 Modified System Files.
 
 ```bash
-Get-ChildItem -Path "C:\Windows" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
+Get-ChildItem -Path "C:\Windows" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime | Export-Csv -Path "C:\Windows\Tasks\ModifiedSystemFiles.csv"
 ```
 
 Last 1,000 Modified Configuration Files.
 
 ```bash
-Get-ChildItem -Path "C:\" -Include *.config,*.ini,*.xml -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 100 FullName, LastWriteTime
-```
-
-Last 1,000 Modified Executables and Scripts.
-
-```bash
-Get-ChildItem -Path "C:\" -Include *.exe,*.dll,*.ps1,*.bat,*.cmd -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
+Get-ChildItem -Path "C:" -Include *.config,*.ini,*.xml -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 100 FullName, LastWriteTime | Export-Csv -Path "C:\Windows\Tasks\ModifiedSystemFiles.csv" -NoTypeInformation
 ```
 
 Last 1,000 Modified Files in User Profiles.
@@ -247,31 +242,15 @@ Last 1,000 Modified Files in User Profiles.
 Get-ChildItem -Path "C:\Users" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
 ```
 
-Last 1,000 Modified Files in Program Directories.
-
-```bash
-Get-ChildItem -Path "C:\Program Files","C:\Program Files (x86)" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
-```
-
-Comprehensive One-Liner Covering Multiple Categories.
-
-```bash
-Get-ChildItem -Path "C:\Windows","C:\Program Files","C:\Program Files (x86)","C:\Users" -Include *.config,*.ini,*.xml,*.exe,*.dll,*.ps1,*.bat,*.cmd -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime
-```
-
-Export Results to a File
-
-```bash
-Get-ChildItem -Path "C:\Windows" -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1000 FullName, LastWriteTime | Export-Csv -Path "C:\ModifiedSystemFiles.csv" -NoTypeInformation
-```
-
 Filter by Date Range: If you're interested in files modified within a specific time frame (e.g., the last 7 days):
 
 ```bash
-Get-ChildItem -Path "C:\" -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -ge (Get-Date).AddDays(-7)} | Sort-Object LastWriteTime -Descending | Select-Object FullName, LastWriteTime
+Get-ChildItem -Path "C:" -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -ge (Get-Date).AddDays(-7)} | Sort-Object LastWriteTime -Descending | Select-Object FullName, LastWriteTime | Export-Csv -Path "C:\Windows\Tasks\
 ```
 
 ### SharpHound.ps1 && BloodHound.ps1
+
+PLEASE USE ../other/CUSTOMQUERIES.JSON IN $HOME/.config/bloodhound/customqueries.json !!!!!!
 
 Note that SharpHound supports looping, running cyclical queries over time like a cron job, which will gather additional data such as environment changes, new log-ons.
 

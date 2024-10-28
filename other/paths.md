@@ -218,3 +218,13 @@ sudo -i
 - sudo -l -> can any file to any location
 - transfer over passwd with custom root user, download/transfer to /etc/passwd
 - root
+
+brute force login in /Admin/ (Couldve sql bypass)
+uncover password in cme
+upload png (php reverse shell), intercept and change name to rev.php
+use found password to pivot
+chisel local web server and see jenkins running
+search version and find file disclosure vuln
+disclose /root/.../initial-pass or something with that name
+login and go to /script, launch rev shell
+root

@@ -1,7 +1,6 @@
 ## Generic Notes
 
-Whether you think you can or think you can’t, you’re right."
-
+"Whether you think you can or think you can’t, you’re right."
 
 ### Technical Procedures and Commands
 
@@ -13,41 +12,6 @@ ssh -o "UserKnownHostsFile=/dev/null" -o "StrictHostKeyChecking=no" learner@191.
 2. **Addressing File Execution Permission Issues**:
    - If lacking execution permissions, copy the file to a location where execution is permitted.
 
----
-
-### Penetration Testing Methodologies
-
-1. **OWASP Penetrating Testing Execution Standard**:
-   - Pre-engagement Interactions.
-   - Intelligence Gathering.
-   - Threat Modeling.
-   - Vulnerability Analysis.
-   - Exploitation.
-   - Post Exploitation.
-   - Reporting.
-
----
-
-### Effective Note-taking and Report Writing
-
-1. **General Guidelines**:
-   - Understand the scope.
-   - Document the Rules of Engagement.
-   - Ensure clarity and precision.
-   - Make notes easily understandable and repeatable.
-   - Use cloud storage for portability.
-   - Include every relevant command.
-   - Discard unhelpful notes.
-   - Recommended tools: Sublime, CherryTree, Obsidian.
-
-2. **Documenting Web Application Vulnerabilities**:
-   - Application Name, URL, Request Type, Issue Detail, Proof of Concept Payload.
-
-3. **Characteristics of Good and Bad Screenshots**:
-   - Good: Legible, relevant to the client, supports description, properly frames the material.
-   - Bad: Illegible, generic, contains irrelevant information, poorly framed.
-
----
 
 #### Adding Repositories
 
@@ -70,6 +34,7 @@ Some additional cool tools are located in 'https://github.com/nil0x42/awesome-ha
 ```bash
 python -m SimpleHTTPServer 80
 ```
+
 #### PenTestMonkey
 
 Great tool of cheat sheets: `https://pentestmonkey.net/cheat-sheet/shells/reverse-cheat-sheet`
@@ -554,3 +519,35 @@ curl https://github.com/samratashok/ADModule/blob/master/Microsoft.ActiveDirecto
 Import-Module .\Microsoft.ActiveDirectory.Management.dll  
 Import-Module .\ActiveDirectory.psd1  
 ```
+
+### Penetration Testing Methodologies
+
+1. **OWASP Penetrating Testing Execution Standard**:
+   - Pre-engagement Interactions.
+   - Intelligence Gathering.
+   - Threat Modeling.
+   - Vulnerability Analysis.
+   - Exploitation.
+   - Post Exploitation.
+   - Reporting.
+
+---
+
+### Effective Note-taking and Report Writing
+
+1. **General Guidelines**:
+   - Understand the scope.
+   - Document the Rules of Engagement.
+   - Ensure clarity and precision.
+   - Make notes easily understandable and repeatable.
+   - Use cloud storage for portability.
+   - Include every relevant command.
+   - Discard unhelpful notes.
+   - Recommended tools: Sublime, CherryTree, Obsidian.
+
+2. **Documenting Web Application Vulnerabilities**:
+   - Application Name, URL, Request Type, Issue Detail, Proof of Concept Payload.
+
+3. **Characteristics of Good and Bad Screenshots**:
+   - Good: Legible, relevant to the client, supports description, properly frames the material.
+   - Bad: Illegible, generic, contains irrelevant information, poorly framed.

