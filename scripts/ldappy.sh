@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Author: itsnotgunnar 
+
 # Function to display usage instructions
 usage() {
     echo "Usage: $0 <IP_ADDRESS> [-u USERNAME] [-p PASSWORD] [-d DOMAIN]"

