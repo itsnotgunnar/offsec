@@ -71,6 +71,54 @@ proxychains ...
 /tmp/chisel server --reverse --port 51234
 /tmp/chisel client kali_ip:51234 R:50080:socks
 ```
+---
+
+#### Tunnel Web Traffic through Remote Computer
+
+Tunneling your web traffic through another computer can be achieved using various methods, depending on your specific needs and the operating systems involved. One common approach is to set up an SSH tunnel. This method is secure and relatively straightforward if you have SSH access to the remote computer. Here’s how you can set up an SSH tunnel to route your web traffic through another computer:
+
+#### Requirements:
+- **SSH access** to the remote computer.
+- **SSH client** installed on your local machine (Linux and macOS have this by default, Windows users can use PuTTY or enable the built-in SSH client).
+- **Web browser** that allows proxy settings configuration (e.g., Firefox, Chrome).
+
+#### Setting Up an SSH Tunnel
+
+1. **Open your terminal** on your local machine.
+
+2. **Create an SSH tunnel** by running the following command:
+   ```bash
+   ssh -D 8080 -C -q -N user@remote-computer
+   ```
+   - `-D 8080` specifies a local "dynamic" application-level port forwarding. This sets up a SOCKS proxy server on local port `8080`.
+   - `-C` enables compression.
+   - `-q` enables quiet mode.
+   - `-N` tells SSH that no remote commands will be executed, and this is just for forwarding.
+   - `user` is your username on the remote computer.
+   - `remote-computer` is the IP address or hostname of the remote computer.
+
+3. **Configure your web browser** to use the SOCKS proxy. This setup varies by browser:
+   - **Firefox**:
+     - Go to Preferences > General > Network Settings.
+     - Select “Manual proxy configuration”.
+     - Set “SOCKS Host” to `127.0.0.1` and the port to `8080`.
+     - Choose SOCKS v5.
+   - **Chrome**:
+     - Chrome does not have built-in proxy settings, so you might need to use an extension like “Proxy SwitchyOmega” or configure system-wide proxy settings.
+
+4. **Browse the internet**. Your web traffic will now be routed through the remote computer.
+
+#### Additional Security Tips
+- Ensure that your SSH server is secured with good practices, such as using key-based authentication and disabling password login.
+- Regularly update both your local and remote machines to protect against vulnerabilities.
+
+#### Troubleshooting
+- If you cannot connect, check your SSH permissions, firewall rules, and whether the SSH service is running on the remote machine.
+- Ensure the remote computer has a stable internet connection.
+
+This setup is useful for secure browsing, bypassing regional restrictions, or keeping your browsing habits away from local snooping. For more advanced scenarios, consider setting up a VPN or using dedicated proxy software.
+
+---
 
 #### Local Forwarding
 

