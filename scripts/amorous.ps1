@@ -22,7 +22,7 @@
 #### Build framework that indexes the computer, collects information, you take notes whenever new access or information is uncovered, it'll trigger if a new path is available. For example, it'd recognize that the DLL in that one folder is modifiable by the one group that you now have access to after triggering a shell from webroot. 
 
 param(
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false)]
     [Alias("w")]
     [string]$customWords  # File containing user names
 )
@@ -40,7 +40,7 @@ New-Item -ItemType Directory -Path $dir -Force | Out-Null
 
 # Define log files
 $logfile = "$dir\log.out"
-$passwordfile = "$dir\passwordsearch.out"
+$passwordfile = "$dir\PasswordSearch.out"
 
 # Define timeout (if needed for future enhancements)
 $timeout = 4
@@ -142,28 +142,33 @@ foreach ($file in $filesToDelete) {
 # Validate and Read Custom Words
 # ===========================
 
-# Validate the existence of the user file
-if (-not (Test-Path $customWords -PathType Leaf)) {
-    Log "File path '${customWords}' is invalid or does not exist."
-    Write-Error "File path '${customWords}' is invalid or does not exist."
-    exit 1
+# Basic patterns to search for
+$pattern = @("user","pass","svc\.", "admin", "secret", "cred", "key", "ms01", "ms02", "dc01", "oscp")
+
+# If customWords is provided, read and integrate them
+if ($customWords -and (Test-Path $customWords -PathType Leaf)) {
+    $words = Get-Content -Path $customWords | Where-Object { $_.Trim() -ne '' }
+
+    if ($words.Count -gt 0) {
+        foreach ($customWord in $words) {
+            $fileExtensions += "*${customWord}*"
+            $pattern += "${customWord}"
+            $regexSearch.Add("Custom_${customWord}", "${customWord}.*[=:].+")
+        }
+        Log "Loaded custom words from '$customWords'."
+    } else {
+        Log "No valid words found in the custom words file. Proceeding without custom words."
+    }
+} else {
+    Log "No custom words file provided. Proceeding with default patterns only."
 }
 
-# Read and sanitize words from the file
-$words = Get-Content -Path $customWords | Where-Object { $_.Trim() -ne '' }
-
-if ($words.Count -eq 0) {
-    Log "No valid words found in the custom words file."
-    Write-Error "No valid words found in the custom words file."
-    exit 1
-}
+Write-Host "Current Patterns: $pattern"
+Write-Host "Current File Extensions: $fileExtensions"
 
 # ===========================
 # Prepare Search Patterns
 # ===========================
-
-# Basic patterns to search for
-$pattern = @("user","pass","svc\.", "admin", "secret", "cred", "key", "ms01", "ms02", "dc01", "oscp")
 
 # Add custom words to patterns and filestosearch
 foreach ($customWord in $words) {
@@ -186,7 +191,7 @@ $interestingFiles = @()
 
 try {
     # Define the log file to record found interesting files
-    $foundLogFile = "$dir\MANGA.LOG"
+    $foundLogFile = "$dir\InterestingFiles.log"
     # Ensure the log file exists; create it if it doesn't
     if (-not (Test-Path $foundLogFile)) {
         New-Item -Path $foundLogFile -ItemType File -Force | Out-Null

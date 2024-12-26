@@ -20,6 +20,12 @@ enum4linux | tee file.txt
 for i in $(seq 330 695); do date --date="$i day ago" +%Y-%m-%d-upload.pdf; done > datefile
 ```
 
+#### Concatenate all videos in a directory (if spaces in file/directory name)
+
+```bash
+find . -name "*.webm" | sort -V > videos.txt && sleep 1 && sed "s/^file \(.*\)$/file '\1'/" "videos.txt" > "tmp.txt" && sleep 1 && mv tmp.txt videos.txt && sleep 1 && ffmpeg -f concat -safe 0 -i videos.txt -c copy automatedRemidiation.webm
+```
+
 #### Decrypt VNC Password
 
 ```bash
