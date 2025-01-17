@@ -14,6 +14,12 @@ cat file.txt | awk '{print $2}'
 enum4linux | tee file.txt
 ```
 
+#### Recursively replace all spaces in dir names
+
+```bash
+find . -depth -name "* *" -execdir rename 's/ /_/g' "{}" \;
+```
+
 #### Iteratitively Create Files with Dates of the Past Year
 
 ```bash
