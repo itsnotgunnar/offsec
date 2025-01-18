@@ -50,6 +50,12 @@ sudo find / -type f -exec du -h {} + | sort -rh | head -n 20
 sudo du -ah / | grep -vE '^(/[^/]+/[^/]+)$' | sort -rh | head -n 20
 ```
 
+#### Find 50 largest duplicate files on filesystem
+
+```bash
+sudo find / -type f -exec md5sum {} + 2>/dev/null | sort | uniq -w32 -dD | awk '{print $2}' | xargs -I{} du -b {} | sort -n | head -n 30
+```
+
 #### Lines only present in file1 or file2 (not in both)
 
 ```bash
