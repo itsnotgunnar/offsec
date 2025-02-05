@@ -25,6 +25,7 @@ ps aux | grep pass --color=auto
 ps -ef --forest | grep pass --color=auto
 ps auxww | grep cloudhosting
 netstat -tnlp | grep 1063
+ps awwfux | less -S # 4-way scrollable process tree
 ```
 
 #### Constantly grep for credentials
@@ -42,6 +43,51 @@ grep -ri "pass\|cred\|login\|user\|secret" . --color|grep -v 'btn\|var\|function
 grep -ri "pass\|cred\|login\|user\|secret" /home /root /var /etc /proc/*/environ /usr/local /opt /tmp --color 2>/dev/null| grep -v 'btn\|function\|jquery\|content:' | grep -i "pass\|cred\|login\|user\|secret" --color
 grep -ri "alice" /home /root /var /etc /proc/*/environ /usr/local /opt /tmp --color 2>/dev/null | grep -v 'btn\|function\|jquery\|content:' | grep -i "alice" --color
 find / -type f -mmin -5 ! -path "/proc/*" ! -path "/sys/*" ! -path "/run/*" ! -path "/dev/*" ! -path "/var/lib/*" ! -path "/private/var/*" 2>/dev/null | grep -v "/linpeas" | head -n 100
+```
+
+#### Understanding ports and processes with lsof.
+
+```bash
+###### Show process that use internet connection at the moment
+
+lsof -P -i -n
+
+# Show process that use specific port number
+
+lsof -i tcp:443
+
+# Lists all listening ports together with the PID of the associated process
+
+lsof -Pan -i tcp -i udp
+
+# List all open ports and their owning executables
+
+lsof -i -P | grep -i "listen"
+
+# Show all open ports
+
+lsof -Pnl -i
+
+# Show open ports (LISTEN)
+
+lsof -Pni4 | grep LISTEN | column -t
+
+# List all files opened by a particular command
+
+lsof -c "process"
+
+# View user activity per directory
+
+lsof -u username -a +D /etc
+
+# Show 10 largest open files
+
+lsof / | \
+awk '{ if($7 > 1048576) print $7/1048576 "MB" " " $9 " " $1 }' | \
+sort -n -u | tail | column -t
+
+# Show current working directory of a process
+lsof -p <PID> | grep cwd
 ```
 
 ### Available Network Interfaces, Routes, and Open Ports

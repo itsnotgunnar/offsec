@@ -26,6 +26,12 @@ find . -depth -name "* *" -execdir rename 's/ /_/g' "{}" \;
 for i in $(seq 330 695); do date --date="$i day ago" +%Y-%m-%d-upload.pdf; done > datefile
 ```
 
+#### Remove part of common directory names
+
+```bash
+find . -depth -type d -name '*NAME*' | while IFS= read -r file; do new_name=$(echo "$file" | sed 's/NAME//'); mv "$file" "$new_name"; done
+```
+
 #### Concatenate all videos in a directory (if spaces in file/directory name)
 
 ```bash
@@ -41,7 +47,7 @@ echo -n 6bcf2a4b6e5aca0f | xxd -r -p | openssl enc -des-cbc --nopad --nosalt -K 
 #### Find largest files on fs
 
 ```bash
-sudo find / -type f -exec du -h {} + | sort -rh | head -n 20
+sudo find / -type f -exec du -h {} + | sort -rh | head -n 50
 ```
 
 #### Find largest directories on your fs, not including root dirs and their child
@@ -54,6 +60,24 @@ sudo du -ah / | grep -vE '^(/[^/]+/[^/]+)$' | sort -rh | head -n 20
 
 ```bash
 sudo find / -type f -exec md5sum {} + 2>/dev/null | sort | uniq -w32 -dD | awk '{print $2}' | xargs -I{} du -b {} | sort -n | head -n 30
+```
+
+#### Delete files that don't match a pattern or file extension
+
+```bash
+rm !(*.foo|*.bar|*.baz)
+```
+
+#### Show process that use internet connection at the moment
+
+```bash
+lsof -P -i -n
+```
+
+#### Convert uppercase files to lowercase files.
+
+```bash
+rename 'y/A-Z/a-z/' *
 ```
 
 #### Lines only present in file1 or file2 (not in both)
