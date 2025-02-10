@@ -493,6 +493,7 @@ http://192.168.180.231/?cwd=../../../../../../../../home/remi&file=.ssh&download
 #### File Upload Vulns (Executable)
 
 File signatures: "https://en.wikipedia.org/wiki/List_of_file_signatures"
+File signatures complete: "https://garykessler.net/library/file_sigs.html"
 ASP Upload: "https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/Upload%20Insecure%20Files/Extension%20ASP"
 PHP Extensions: "https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Upload%20Insecure%20Files/Extension%20PHP/extensions.lst"
 
