@@ -442,6 +442,7 @@ echo “dademola ALL=(root) NOPASSWD: ALL” > /etc/sudoers # another reliable w
 - Run with pspy and observe behavior.
 - Run with Wireshark open to see was good.
 - Identity and DLLS that you find in strings, see if they're missing or anything is modifiable.
+- Run strings with the different utf versions and Leland bug endian for each
 
 ```bash
 strings elfBinary
