@@ -38,6 +38,19 @@ find . -depth -type d -name '*NAME*' | while IFS= read -r file; do new_name=$(ec
 find . -name "*.webm" | sort -V > videos.txt && sleep 1 && sed "s/^file \(.*\)$/file '\1'/" "videos.txt" > "tmp.txt" && sleep 1 && mv tmp.txt videos.txt && sleep 1 && ffmpeg -f concat -safe 0 -i videos.txt -c copy automatedRemidiation.webm
 ```
 
+#### Trim Video
+
+```bash
+ffmpeg -i input.mp4 -ss 00:06:00 -t 00:01:00 -c copy output.mp4
+```
+
+#### Write Metadata to File
+
+```bash
+setfattr -n user.metadata_key -v "value" file
+getfattr -d file
+```
+
 #### Decrypt VNC Password
 
 ```bash
@@ -72,6 +85,18 @@ rm !(*.foo|*.bar|*.baz)
 
 ```bash
 lsof -P -i -n
+```
+
+#### Show process that use specific port number
+
+```bash
+lsof -i tcp:443
+```
+
+#### Lists all listening ports together with the PID of the associated process
+
+```bash
+lsof -Pan -i tcp -i udp
 ```
 
 #### Convert uppercase files to lowercase files.
