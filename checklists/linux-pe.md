@@ -19,7 +19,7 @@ stty columns 200 rows 200
 ./linpeas.sh
 
 # Basic
-id ; env ; hostname ; /etc/issue ; /etc/os-release ; uname -a ;
+id ; env ; hostname ; cat /etc/issue ; cat /etc/os-release ; uname -a ;
 systemctl show-environment # show system path
 
 # Users

@@ -551,3 +551,13 @@ Import-Module .\ActiveDirectory.psd1
 3. **Characteristics of Good and Bad Screenshots**:
    - Good: Legible, relevant to the client, supports description, properly frames the material.
    - Bad: Illegible, generic, contains irrelevant information, poorly framed.
+
+### Hiding & extracting a file in an image
+
+https://github.com/tbpaolini/imgconceal/releases/tag/v1.0.4
+
+```bash
+imgconceal -i "path to cover image" -h "path to file being hidden" -p "password for extraction"
+
+imgconceal -e "path to cover image" -p "password for extraction"
+```
