@@ -12,3 +12,4 @@
 - ACE/ACL - https://www.ired.team/offensive-security-experiments/active-directory-kerberos-abuse/abusing-active-directory-acls-aces
 - Dynamic cheat sheet - https://docs.google.com/spreadsheets/d/13g6RFbaS-5KJcETONOSSV7vNSh9OXCgbNak8WM2H1A0/edit?gid=1858408689#gid=1858408689
 - Meta linux - https://github.com/NoorQureshi/kali-linux-cheatsheet?tab=readme-ov-file#dns-zone-transfers
+- Notably snoopio - check what files processes are trying to access, and which don't exist - https://github.com/brendangregg/perf-tools
